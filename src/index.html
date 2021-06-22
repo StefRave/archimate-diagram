@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<link rel="shortcut icon" href="#" />
+
+<head>
+    <title>Hi</title>
+
+</head>
+
+<body onload="myLibrary.onDocumentLoad()">
+    <h1>Test2</h1>
+    <input id="fileUpload" type="file" name="fileUpload" />
+    <button id="uploadNutton" onclick="myLibrary.uploadFile()"> Upload </button>
+    <select name="views" id="projectView" onchange="myLibrary.onSelectView(projectView.value)"></select>
+    <div id="svgTarget">
+    </div>
+</body>
+</html>

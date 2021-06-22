@@ -1,0 +1,696 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="880"
+  height="1000" onload="makeDraggable(evt)">
+  <script href="DiagramEditor.js" />
+  <style>
+    svg.dragging {
+      cursor: move !important;
+    }
+
+    g.business {
+      --mainColor: #ffff99;
+    }
+
+    g.application {
+      --mainColor: #B5FFFF;
+    }
+
+    g.technology {
+      --mainColor: #C9E7B7;
+    }
+
+    g.strategy {
+      --mainColor: #CCCCFF;
+    }
+
+    g.motivation {
+      --mainColor: #d9cfff;
+    }
+
+    g.capability {
+      --mainColor: #F5DEAA;
+    }
+
+    g.package {
+      --mainColor: #FFE0E0;
+    }
+
+    g.gap {
+      --mainColor: #E0FFE0;
+    }
+
+    g.location {
+      --mainColor: #FBB875;
+    }
+
+    g.undefined {
+      --mainColor: #ccc;
+    }
+
+    g.element {
+      fill: var(--mainColor);
+    }
+
+    foreignObject {
+      overflow: visible;
+    }
+
+    g.element > foreignObject div {
+      display: flex;
+      justify-content: center;
+      text-align: center;
+      margin-left: 5px;
+      margin-right: 5px;
+      padding-top: 1px;
+    }
+
+    g.element.structure > foreignObject div {
+      padding-top: 4px;
+    }
+
+    foreignObject div div {
+      display: inline-block;
+      font-size: 12px;
+      font-family: "Segoe UI", Verdana, Geneva, Tahoma, sans-serif;
+      color: #000000;
+      line-height: 1.2;
+      pointer-events: all;
+      white-space: normal;
+      word-wrap: normal;
+      text-overflow: clip;
+      overflow: hidden;
+    }
+
+    g.group > foreignObject div {
+      padding-top: 0px;
+      justify-content: left;
+      text-align: left;
+    }
+    g.note > foreignObject div {
+      justify-content: left;
+    }
+    [contenteditable="true"]:active,
+    [contenteditable="true"]:focus {
+      border: none;
+      outline: none;
+      background-color: white;
+    }
+
+    g.element ellipse,
+    g.element path,
+    g.element rect {
+      stroke: black;
+    }
+
+    g.element.junction.or {
+      fill: #fff;
+    }
+
+    g.element.behavior rect {
+      stroke: black;
+      rx: 10;
+      ry: 10;
+    }
+
+    g.element {
+      filter: drop-shadow(0px 2px 2px #777);
+    }
+
+    g.element:hover {
+      filter: drop-shadow(0px 0px 6px #ff6);
+    }
+
+    g.element.dragging {
+      z-index: 10;
+      opacity: 0.5;
+    }
+
+    path.Composition.Relationship {
+      marker-start: url(#arrowComposition);
+    }
+
+    path.Aggregation.Relationship {
+      marker-start: url(#arrowAggregate);
+    }
+
+    path.Specialisation.Relationship {
+      marker-end: url(#arrowOpen);
+    }
+
+    path.Triggering.Relationship {
+      marker-end: url(#arrowClosed);
+    }
+
+    path.Access.Relationship {
+      stroke-dasharray: 2 4;
+    }
+
+    path.Access.Relationship.Write, path.Access.Relationship.Access {
+      marker-end: url(#arrowPointed);
+    }
+
+    path.Access.Relationship.Read {
+      marker-start: url(#arrowPointedStart);
+    }
+
+    path.Realization.Relationship {
+      marker-end: url(#arrowOpen);
+      stroke-dasharray: 4 4;
+    }
+
+    path.Influence.Relationship {
+      marker-end: url(#arrowPointed);
+      stroke-dasharray: 6 4;
+    }
+
+    path.Assignment.Relationship {
+      marker-end: url(#arrowClosed);
+      marker-start: url(#arrowCircle);
+    }
+
+    path.Serving.Relationship {
+      marker-end: url(#arrowPointed);
+    }
+
+    path.Flow.Relationship {
+      marker-end: url(#arrowClosed);
+      stroke-dasharray: 8 4;
+    }
+
+    path.Relationship {
+      fill: none;
+      stroke: #000000;
+      stroke-linecap: butt;
+    }
+
+    path.RelationshipDetect {
+      fill: none;
+      stroke-width: 4;
+      stroke: #0000;
+    }
+
+    path.RelationshipDetect:Hover {
+      stroke: #5555;
+    }
+
+    g.con.selected path.RelationshipDetect {
+      stroke: #44a5;
+    }
+
+    g.con circle {
+      display: none;
+      stroke: #fff;
+      fill: #000;
+    }
+
+    g.con.selected circle {
+      display: initial;
+      cursor: move;
+    }
+  </style>
+  <defs>
+    <!-- https://css-tricks.com/use-and-reuse-everything-in-svg-even-animations/ -->
+    <g id="ActorIcon">
+      <ellipse cx="-10" cy="6" rx="2.7" ry="2.25" fill="none" stroke="black" />
+      <path d="M -10 8.25 l 0 7 m -4.5 -4.5 l 9 0 m -9 8.25 l 4.5 -3.75 l 4.5 3.75" fill="none" stroke="black" />
+    </g>
+    <g id="RoleIcon">
+      <path d="m -8 14 a 1 1 0 0 1 0 -8 l -9 0 a 1 1 0 0 0 0 8 l 9 0 a 1 1 0 0 0 0 -8" stroke="black" fill="none" />
+    </g>
+    <g id="CollaborationIcon">
+      <ellipse cx="-15" cy="9" rx="5" ry="5" stroke="black" fill="none" />
+      <ellipse cx="-9" cy="9" rx="5" ry="5" stroke="black" fill="none" />
+    </g>
+    <g id="Interface">
+      <ellipse cx="-8" cy="9" rx="5" ry="5" stroke="black" />
+      <path d="M -13 9 h -5" fill="none" stroke="black" />
+    </g>
+    <g id="ProcessIcon">
+      <path d="m -19, 7 l 9 0 l 0 -3 l 6 5 l -6 5 l 0 -3 l -9 0 z" stroke="black" fill="none" />
+    </g>
+    <g id="Function">
+      <path d="m -12 3 l 8 3 l 0 12 l -8 -3 l -8 3 l 0 -12 z" stroke="black" fill="none" />
+    </g>
+    <g id="InteractionIcon">
+      <path
+        d="m -10 3 a 1 1 0 0 1 0 14 z m -2 0 a 1 1 0 0 0 0 14 z"
+        stroke="black" fill="none" />
+    </g>
+    <g id="ServiceIcon">
+      <path d="M-10 5a1 1 0 010 10l-7 0a1 1 0 01-1-10z" stroke="black" fill="none" />
+    </g>
+    <g id="Event">
+      <path d="m-10 5a1 1 0 010 10l-13 0 5-5-5-5z"
+        stroke="black" />
+    </g>
+    <g id="SystemSoftwareIcon">
+      <path d="m -6 14 a 1 1 0 0 0 -7 -7 a 1 1 0 0 0 7 7 c 9.14 -6.61 -1.76 -15.14 -6.46 -7.43" fill="none" stroke="black" />
+    </g>
+    <g id="Component" transform="translate(-20, 0)">
+      <rect x="6.4" y="3" width="9.8" height="15" fill="none" stroke="#000000" pointer-events="all" />
+      <rect x="3.2" y="6.7" width="6.5" height="2.3" fill="none" stroke="#000000" pointer-events="all" />
+      <rect x="3.2" y="12" width="6.5" height="2.3" fill="none" stroke="#000000" pointer-events="all" />
+    </g>
+    <g id="CapabilityIcon" transform="translate(-20, 4)">
+      <rect x="8" y="0" fill="none" width="4" height="12" stroke="black" />
+      <rect x="0" y="8" fill="none" width="12" height="4" stroke="black" />
+      <rect x="4" y="4" fill="none" width="8" height="8" stroke="black" />
+    </g>
+    <g id="OutcomeIcon" transform="translate(-19 3)">
+      <ellipse cx="5" cy="9" rx="1.5" ry="1.5" stroke="black" fill="none" />
+      <ellipse cx="5" cy="9" rx="4.5" ry="4.5" stroke="black" fill="none" />
+      <ellipse cx="5" cy="9" rx="7.5" ry="7.5" stroke="black" fill="none" />
+      <path stroke="black" fill="black" stroke-width="1.5" d="M 6 8 l 1.5 -4.5 l 3 3 Z"></path>
+      <path stroke="black" fill="none" stroke-width="1" stroke-linecap="round" d="M 6 8 l 6 -6"></path>
+      <path stroke="black" fill="none" stroke-width="0.5" stroke-linecap="round" d="M 11.5 0.5 l -1 3 l 3 -1">
+      </path>
+    </g>
+    <g id="PrincipleIcon">
+      <path stroke="black" fill="none" d="m -20 5 c 1 -1 12 -1 13 0 c 1 1 1 12 0 13 c -1 1 -12 1 -13 0 c -1 -1 -1 -12 0 -13 z"></path>
+      <path stroke="black" fill="#000" d="m -14 7 v2 l0.3 4 h0.4 l0.3 -4 v-2z  "></path>
+      <rect width="0.6" height="0.6" x="-13.8" y="15" stroke="#000" fill="#000" />
+    </g>
+
+    <g id="LocationIcon">
+      <path stroke="black" fill="none" stroke-width="1" d="M -5 9  a 1 1 0 0 0 -10 0 l 5 10z"></path>
+    </g>
+    <g id="TodoIcon" transform="translate(-13 18)">
+      <text x="0" y="0" fill="#000000" font-family="Helvetica" font-size="17px" text-anchor="middle"
+        style="pointer-events: none;">&#x1F937;</text>
+    </g>
+
+    <pattern id="smallGrid" width="12" height="12" patternUnits="userSpaceOnUse">
+      <path d="M 12 0 L 0 0 0 12" fill="none" stroke="#ddd" stroke-width="1px" vector-effect="non-scaling-stroke" />
+    </pattern>
+    <pattern id="grid" width="120" height="120" patternUnits="userSpaceOnUse">
+      <rect width="120" height="120" fill="url(#smallGrid)" stroke="#ccc" stroke-width="1px"
+        vector-effect="non-scaling-stroke" />
+    </pattern>
+
+    <marker id="arrowAggregate" markerWidth="13" markerHeight="10" refX="0.4" refY="5" orient="auto"
+      markerUnits="userSpaceOnUse">
+      <path d="M12.8 5 l -6 4 l-6 -4 l6 -4 z" fill="#fff" stroke="#000" />
+    </marker>
+    <marker id="arrowComposition" markerWidth="14" markerHeight="10" refX="0.4" refY="5" orient="auto"
+      markerUnits="userSpaceOnUse">
+      <path d="M12.8 5 l -6 4 l-6 -4 l6 -4 z z" fill="#000" stroke="#000" />
+    </marker>
+    <marker id="arrowClosed" markerWidth="11" markerHeight="10" refX="10.5" refY="5" orient="auto"
+      markerUnits="userSpaceOnUse">
+      <path d="M 10 5 l -7 3.5 l0 -7z" fill="#000" stroke="#000" />
+    </marker>
+    <marker id="arrowOpen" markerWidth="21" markerHeight="16" refX="20.5" refY="8" orient="auto"
+      markerUnits="userSpaceOnUse">
+      <path d="M 20 8 l -14 7 l0 -14z" fill="#fff" stroke="#000" />
+    </marker>
+    <marker id="arrowPointed" markerWidth="11" markerHeight="8" refX="10.5" refY="4" orient="auto"
+      markerUnits="userSpaceOnUse">
+      <path d="M 3 0.5 l 7 3.5 l -7 3.5" fill="none" stroke="#000" />
+    </marker>
+    <marker id="arrowPointedStart" markerWidth="11" markerHeight="8" refX="0.5" refY="4" orient="auto"
+      markerUnits="userSpaceOnUse">
+      <path d="M 10 0.5 l -7 3.5 l 7 3.5" fill="none" stroke="#000" />
+    </marker>
+    <marker id="arrowCircle" markerWidth="11" markerHeight="8" refX="2" refY="4" orient="auto"
+      markerUnits="userSpaceOnUse">
+      <ellipse cx="5" cy="4" rx="3" ry="3" fill="#000000" stroke="#000000" pointer-events="all" />
+    </marker>
+  </defs>
+
+  <rect x="-12000" y="-12000" width="24000" height="24000" fill="url(#grid)" />
+  <g id="Content">
+
+    <g id="BusinessActor" transform="translate(12, 24)" class="business active element">
+      <rect width="168" height="60" />
+      <use xlink:href="#ActorIcon" x="168" y="0" />
+      <foreignObject width="168" height="60">
+        <div xmlns="http://www.w3.org/1999/xhtml">
+          <div>Business Actor</div>
+        </div>
+      </foreignObject>
+    </g>
+
+    <g id="BusinessRole" transform="translate(12, 96)" class="business active element">
+      <rect width="168" height="60" />
+      <use xlink:href="#RoleIcon" x="168" y="0" />
+      <foreignObject width="168" height="60">
+        <div xmlns="http://www.w3.org/1999/xhtml">
+          <div>Business Role</div>
+        </div>
+      </foreignObject>
+    </g>
+
+    <g id="BusinessCollaboration" transform="translate(12, 168)" class="business active element">
+      <rect width="168" height="60" />
+      <use xlink:href="#CollaborationIcon" x="168" y="0" />
+      <foreignObject width="168" height="60">
+        <div xmlns="http://www.w3.org/1999/xhtml">
+          <div>Business Collaboration</div>
+        </div>
+      </foreignObject>
+    </g>
+
+    <g id="BusinessInterface" transform="translate(12, 240)" class="business active element">
+      <rect width="168" height="60" />
+      <use xlink:href="#Interface" x="168" y="0" />
+      <foreignObject width="168" height="60">
+        <div xmlns="http://www.w3.org/1999/xhtml">
+          <div>Business Interface</div>
+        </div>
+      </foreignObject>
+    </g>
+
+    <g id="BusinessProcess" transform="translate(192, 24)" class="business behavior element">
+      <rect width="168" height="60" />
+      <use xlink:href="#ProcessIcon" x="168" y="0" />
+      <foreignObject width="168" height="60">
+        <div xmlns="http://www.w3.org/1999/xhtml">
+          <div>Business Process</div>
+        </div>
+      </foreignObject>
+    </g>
+
+    <g id="BusinessFunction" transform="translate(192, 96)" class="business behavior element">
+      <rect width="168" height="60" />
+      <use xlink:href="#Function" x="168" y="0" />
+      <foreignObject width="168" height="60">
+        <div xmlns="http://www.w3.org/1999/xhtml">
+          <div>Business Function</div>
+        </div>
+      </foreignObject>
+    </g>
+
+    <g id="BusinessInteraction" transform="translate(192, 168)" class="business behavior element">
+      <rect width="168" height="60" />
+      <use xlink:href="#InteractionIcon" x="168" y="0" />
+      <foreignObject width="168" height="60">
+        <div xmlns="http://www.w3.org/1999/xhtml">
+          <div>Business Interaction</div>
+        </div>
+      </foreignObject>
+    </g>
+
+    <g id="BusinessService" transform="translate(192, 240)" class="business behavior element">
+      <rect width="168" height="60" />
+      <use xlink:href="#ServiceIcon" x="168" y="0" />
+      <foreignObject width="168" height="60">
+        <div xmlns="http://www.w3.org/1999/xhtml">
+          <div>Business Service</div>
+        </div>
+      </foreignObject>
+    </g>
+
+    <g id="BusinessEvent" transform="translate(192, 312)" class="business behavior element">
+      <rect width="168" height="60" />
+      <use xlink:href="#Event" x="168" y="0" />
+      <foreignObject width="168" height="60">
+        <div xmlns="http://www.w3.org/1999/xhtml">
+          <div>Business Event</div>
+        </div>
+      </foreignObject>
+    </g>
+
+    <g id="Capability" transform="translate(192, 384)" class="capability behavior element">
+      <rect width="168" height="60" />
+      <use xlink:href="#CapabilityIcon" x="168" y="0" />
+      <foreignObject width="168" height="60">
+        <div xmlns="http://www.w3.org/1999/xhtml">
+          <div>Capability</div>
+        </div>
+      </foreignObject>
+    </g>
+
+    <g id="TechnologyService" transform="translate(192, 696)" class="technology behavior element">
+      <rect width="168" height="60" />
+      <use xlink:href="#ServiceIcon" x="168" y="0" />
+      <foreignObject width="168" height="60">
+        <div xmlns="http://www.w3.org/1999/xhtml">
+          <div>Technology Service</div>
+        </div>
+      </foreignObject>
+    </g>
+
+    <g id="ApplicationService" transform="translate(192, 456)" class="application behavior element">
+      <rect width="168" height="60" />
+      <use xlink:href="#ServiceIcon" x="168" y="0" />
+      <foreignObject width="168" height="60">
+        <div xmlns="http://www.w3.org/1999/xhtml">
+          <div>Application Service</div>
+        </div>
+      </foreignObject>
+    </g>
+
+    <g id="ApplicationFunction" transform="translate(192, 528)" class="application behavior element">
+      <rect width="168" height="60" />
+      <use xlink:href="#Function" x="168" y="0" />
+      <foreignObject width="168" height="60">
+        <div xmlns="http://www.w3.org/1999/xhtml">
+          <div>Application Function</div>
+        </div>
+      </foreignObject>
+    </g>
+
+    <g id="BusinessObject" transform="translate(372, 24)" class="business structure element">
+      <rect width="168" height="60" />
+      <path d="M 0 8 l 168 0" />
+      <foreignObject width="168" height="60">
+        <div xmlns="http://www.w3.org/1999/xhtml">
+          <div>Business Object</div>
+        </div>
+      </foreignObject>
+    </g>
+
+    <g id="Contract" transform="translate(372, 96)" class="business structure element">
+      <rect width="168" height="60" />
+      <path d="M 0 8 l 168 0" />
+      <path d="M 0 60 l 0 -8 l 168 0" />
+      <foreignObject width="168" height="60">
+        <div xmlns="http://www.w3.org/1999/xhtml">
+          <div>Contract</div>
+        </div>
+      </foreignObject>
+    </g>
+
+
+    <g id="Product" transform="translate(372, 168)" class="business structure element">
+      <rect width="168" height="60" />
+      <path d="M 0 8 l 90 0 l 0 -8" fill="none" />
+      <foreignObject width="168" height="60">
+        <div xmlns="http://www.w3.org/1999/xhtml">
+          <div contenteditable="true">Product</div>
+        </div>
+      </foreignObject>
+    </g>
+
+
+    <g id="Representation" transform="translate(372, 240)" class="business structure element">
+      <path d="M 0 0 l 168 0 l 0 60
+            c -84 -16 -84 16 -168 0 Z" />
+      <path d="M 0 8 l 168 0" fill="none" />
+      <foreignObject width="168" height="60">
+        <div xmlns="http://www.w3.org/1999/xhtml">
+          <div>Representation</div>
+        </div>
+      </foreignObject>
+    </g>
+
+    <g id="Grouping" transform="translate(12, 312)" class="group element">
+      <path fill="white" d="M168,18 l-12,0 l0,-18 l-156,0 l0,60 l168,0 z" stroke="#bbb" stroke-dasharray="8,4" />
+      <path fill="none" stroke-dasharray="8,4" d="M 0 18 l 156 0" stroke="#bbb" />
+      <foreignObject width="156" height="12">
+        <div xmlns="http://www.w3.org/1999/xhtml">
+          <div>Grouping</div>
+        </div>
+      </foreignObject>
+    </g>
+
+    <g id="Note" transform="translate(552, 312)" class="group element">
+      <path fill="white" d="M0,60 v-60 h168 v52 l-8 8  z" stroke="#bbb" />
+      <foreignObject width="168" height="60">
+        <div xmlns="http://www.w3.org/1999/xhtml">
+          <div>Note</div>
+        </div>
+      </foreignObject>
+    </g>
+
+    <g id="Group" transform="translate(12, 384)" class="group element">
+      <path fill="#ccc" d="M168,18 l-12,0 l0,-18 l-156,0 l0,60 l168,0 z" stroke="#bbb" />
+      <path d="M 0 18 l 156 0" stroke="#eee`" />
+      <foreignObject width="156" height="12">
+        <div xmlns="http://www.w3.org/1999/xhtml">
+          <div>Group</div>
+        </div>
+      </foreignObject>
+    </g>
+    <g id="ApplicationInterface" transform="translate(12, 456)" class="application active element">
+      <rect width="168" height="60" />
+      <use xlink:href="#Interface" x="168" y="0" />
+      <foreignObject width="168" height="60">
+        <div xmlns="http://www.w3.org/1999/xhtml">
+          <div>Application Interface</div>
+        </div>
+      </foreignObject>
+    </g>
+
+    <g id="ApplicationCollaboration" transform="translate(12, 528)" class="application active element">
+      <rect width="168" height="60" />
+      <use xlink:href="#CollaborationIcon" x="168" y="0" />
+      <foreignObject width="168" height="60">
+        <div xmlns="http://www.w3.org/1999/xhtml">
+          <div>Application Collaboration</div>
+        </div>
+      </foreignObject>
+    </g>
+
+    <g id="ApplicationCollaboration" transform="translate(12, 600)" class="technology static element">
+      <rect width="168" height="60" />
+      <use xlink:href="#SystemSoftwareIcon" x="168" y="0" />
+      <foreignObject width="168" height="60">
+        <div xmlns="http://www.w3.org/1999/xhtml">
+          <div>System Software</div>
+        </div>
+      </foreignObject>
+    </g>
+
+    <g id="todo" transform="translate(372, 312)" class="undefined element">
+      <rect width="168" height="60" />
+      <use xlink:href="#TodoIcon" x="168" y="0" />
+      <foreignObject width="168" height="60">
+        <div xmlns="http://www.w3.org/1999/xhtml">
+          <div>Work in progress</div>
+        </div>
+      </foreignObject>
+    </g>
+
+    <g id="Outcome" transform="translate(372, 384)" class="motivation element">
+      <path d="M8 0 h 152 l 8 8 v 44 l -8 8 h -152 l -8 -8 v -44 z" />
+      <use xlink:href="#OutcomeIcon" x="168" y="0" />
+      <foreignObject width="168" height="60">
+        <div xmlns="http://www.w3.org/1999/xhtml">
+          <div>Outcome</div>
+        </div>
+      </foreignObject>
+    </g>
+
+    <g id="Principle" transform="translate(552, 384)" class="motivation element">
+      <path d="M8 0 h 152 l 8 8 v 44 l -8 8 h -152 l -8 -8 v -44 z" />
+      <use xlink:href="#PrincipleIcon" x="168" y="0" />
+      <foreignObject width="168" height="60">
+        <div xmlns="http://www.w3.org/1999/xhtml">
+          <div>Principle</div>
+        </div>
+      </foreignObject>
+    </g>
+
+    <g id="ApplicationComponent" transform="translate(372, 456)" class="application active element">
+      <rect width="168" height="60" />
+      <use xlink:href="#Component" x="168" y="0" />
+      <foreignObject width="168" height="60">
+        <div xmlns="http://www.w3.org/1999/xhtml">
+          <div>Application Component</div>
+        </div>
+      </foreignObject>
+    </g>
+
+    <g id="DataObject" transform="translate(372, 528)" class="application structure element">
+      <rect width="168" height="60" />
+      <path d="M 0 8 l 168 0" />
+      <foreignObject width="168" height="60">
+        <div xmlns="http://www.w3.org/1999/xhtml">
+          <div>Data Object</div>
+        </div>
+      </foreignObject>
+    </g>
+
+
+
+
+
+
+    <g id="Node" transform="translate(372, 696)" class="technology structure element">
+      <path fill="rgb(180,207,164)" d="M 0 8 l 8 -8 l 160 0 l 0 52 l -8 8 l -160 0z" stroke="none" />
+      <rect x="0" y="8" fill="rgb(201,231,183)" width="160" height="52" stroke="none" />
+      <path fill="none" d="M168 0 l -8 8" fill-rule="evenodd" stroke="rgb(140,161,128)" />
+      <foreignObject width="168" height="60">
+        <div xmlns="http://www.w3.org/1999/xhtml">
+          <div>Node</div>
+        </div>
+      </foreignObject>
+    </g>
+
+    <g id="Device" transform="translate(372, 768)" class="technology structure element">
+      <path fill="rgb(180,207,164)" d="M 8 52 l -8 8 l 168 0 l -8 -8z" stroke="none" />
+      <rect x="0" y="0" fill="rgb(201,231,183)" width="168" height="52" rx="8" stroke="none" />
+      <foreignObject width="168" height="60">
+        <div xmlns="http://www.w3.org/1999/xhtml">
+          <div>Device</div>
+        </div>
+      </foreignObject>
+    </g>
+
+    <g id="Location" transform="translate(552, 696)" class="location element">
+      <rect width="168" height="60" />
+      <use xlink:href="#LocationIcon" x="168" y="0" />
+      <foreignObject width="168" height="60">
+        <div xmlns="http://www.w3.org/1999/xhtml">
+          <div>Location</div>
+        </div>
+      </foreignObject>
+    </g>
+
+    <g id="Junction" transform="translate(552, 24)" class="element junction">
+      <ellipse cx="5" cy="5" rx="5" ry="5" />
+    </g>
+
+    <g id="JunctionOr" transform="translate(552, 44)" class="element junction or">
+      <ellipse cx="5" cy="5" rx="5" ry="5" />
+    </g>
+
+    <text x="80" y="14" fill="#000000" font-family="Helvetica" font-size="12px" text-anchor="middle">Active
+      Structure elements</text>
+    <text x="270" y="14" fill="#000000" font-family="Helvetica" font-size="12px" text-anchor="middle">Behavior
+      elements</text>
+    <text x="455" y="14" fill="#000000" font-family="Helvetica" font-size="12px" text-anchor="middle">Passive
+      Structure elements</text>
+
+    <g transform="translate(640, 24)">
+      <text x="-60" y="10" fill="#000000" font-family="Helvetica" font-size="11px" text-anchor="flow">Composition</text>
+      <path d="M 10 10 h 150" class="Composition Relationship" />
+
+      <text x="-60" y="25" fill="#000000" font-family="Helvetica" font-size="11px" text-anchor="flow">Aggregation</text>
+      <path d="M 10 25 h 150" class="Aggregation Relationship" />
+
+      <text x="-60" y="40" fill="#000000" font-family="Helvetica" font-size="11px" text-anchor="flow">Triggering</text>
+      <path d="M 10 40 h 150" class="Triggering Relationship" />
+
+      <text x="-60" y="55" fill="#000000" font-family="Helvetica" font-size="11px"
+        text-anchor="flow">Specialisation</text>
+      <path d="M 10 55 h 150" class="Specialisation Relationship" />
+
+      <text x="-60" y="70" fill="#000000" font-family="Helvetica" font-size="11px" text-anchor="flow">Access</text>
+      <path d="M 10 70 h 150" class="Access Relationship Read Write" />
+
+      <text x="-60" y="85" fill="#000000" font-family="Helvetica" font-size="11px" text-anchor="flow">Realization</text>
+      <path d="M 10 85 h 150" class="Realization Relationship" />
+
+      <text x="-60" y="100" fill="#000000" font-family="Helvetica" font-size="11px"
+        text-anchor="flow">Aggregation</text>
+      <path d="M 10 100 h 150" class="Flow Relationship" />
+
+      <text x="-60" y="115" fill="#000000" font-family="Helvetica" font-size="11px" text-anchor="flow">Assignment</text>
+      <path d="M 10 115 h 150" class="Assignment Relationship" />
+
+      <text x="-60" y="130" fill="#000000" font-family="Helvetica" font-size="11px" text-anchor="flow">Serving</text>
+      <path d="M 10 130 h 150" class="Serving Relationship" />
+
+      <text x="-60" y="145" fill="#000000" font-family="Helvetica" font-size="11px" text-anchor="flow">Influence</text>
+      <path d="M 10 145 h 150" class="Influence Relationship" />
+      <text x="150" y="140" fill="#000000" font-family="Helvetica" font-size="11px" text-anchor="middle">+/-</text>
+
+      <path fill="none" d="M200,50 v40 q0,10,10,10 h 40" stroke="black" />
+      <path fill="none" d="M220,50 v45 a20,10,0,0,0,0,10 v 40" stroke="black" />
+
+
+    </g>
+  </g>
+</svg>

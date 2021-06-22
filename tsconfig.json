@@ -1,0 +1,17 @@
+{
+	"compilerOptions": {
+		"outDir": "./dist/",
+		"sourceMap": true,
+		"noImplicitAny": true,
+		"module": "commonjs",
+		"target": "es2015",
+		"declaration": true,
+		"allowSyntheticDefaultImports": true,
+		"esModuleInterop": true,
+		"lib": [ "es2019", "DOM" ],
+		"baseUrl": "src"
+	},
+	"include": [
+		"src/**/*"
+	]
+}
