@@ -81,20 +81,28 @@ export class DiagramRenderer {
                 archiElement.Documentation = child.Element.getAttribute('documentation');
             }
             var es = elements.get(archiElement.EntityType)?.outerHTML;
+            if (es == null && (archiElement.EntityType.startsWith('Technology') || archiElement.EntityType.startsWith('Application'))) {
+                es = elements.get(archiElement.EntityType.replace(/Technology|Application/, 'Business'))?.outerHTML;
+                if (es != null && archiElement.EntityType.startsWith('Technology'))
+                    es = es.replace('business', 'technology');
+                else if (es != null && archiElement.EntityType.startsWith('Application'))
+                    es = es.replace('business', 'application');
+            }
             if (!es)
                 es = elements.get('todo').outerHTML;
 
             var { X, Y, Width, Height } = child.Bounds;
             if (child.Id === '3733')
                 child.ElementId.toString();
-            es = es.replace(/(?<!\d)168\b/g, `${Width}`);
-            es = es.replace(/(?<!\d)152\b/g, `${Width - 16}`);
-            es = es.replace(/(?<!\d)52\b/g, `${Height - 8}`);
-            es = es.replace(/(?<!\d)160\b/g, `${Width - 8}`);
-            es = es.replace(/(?<!\d)60\b/g, `${Height}`);
-            es = es.replace(/(?<!\d)84\b/g, `${Width / 2}`);
+            es = es.replace(/(?<!\d)168(?!\d)/g, `${Width}`);
+            es = es.replace(/(?<!\d)152(?!\d)/g, `${Width - 16}`);
+            es = es.replace(/(?<!\d)52(?!\d)/g, `${Height - 8}`);
+            es = es.replace(/(?<!\d)44(?!\d)/g, `${Height - 16}`);
+            es = es.replace(/(?<!\d)160(?!\d)/g, `${Width - 8}`);
+            es = es.replace(/(?<!\d)60(?!\d)/g, `${Height}`);
+            es = es.replace(/(?<!\d)84(?!\d)/g, `${Width / 2}`);
             if (archiElement.EntityType === 'Grouping' || archiElement.EntityType === 'Group')
-                es = es.replace(/(?<!\d)156\b/g, `${Width - 12}`);
+                es = es.replace(/(?<!\d)156(?!\d)/g, `${Width - 12}`);
             if (archiElement.EntityType === 'Junction') {
                 if (archiElement.Element.getAttribute('type') === 'or')
                     es = es.replace('class=\'', 'class=\'or ');

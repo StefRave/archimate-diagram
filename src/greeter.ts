@@ -5,13 +5,9 @@ export class ArchimateProjectStorage {
     public static async GetDefaultProject(): Promise<ArchimateProject> {
         var archimateFilePath = require('Archisurance.archimate');
         var a = await fetch(archimateFilePath);
-        var b = await a.text();
-        // var c = await JSZip.loadAsync(b);
-
-        const parser = new DOMParser();
-        var archiDoc = parser.parseFromString(b, 'application/xml');
-
-        return ArchimateProjectStorage.GetFromDocument(archiDoc);
+        var b = await a.arrayBuffer();
+        
+        return ArchimateProjectStorage.GetProjectFromArrayBuffer(b);
     }
 
     public static async GetProjectFromArrayBuffer(file: ArrayBuffer): Promise<ArchimateProject> {

@@ -21,7 +21,8 @@ module.exports = {
     output: {
         filename: '[name].bundle.js',
         path: DESTINATION,
-        library: 'myLibrary'
+        library: 'myLibrary',
+        assetModuleFilename: "[name][ext]",
     },
 
     resolve: {
