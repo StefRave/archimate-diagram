@@ -6,7 +6,7 @@ export class ArchimateProjectStorage {
         var archimateFilePath = require('Archisurance.archimate');
         var a = await fetch(archimateFilePath);
         var b = await a.arrayBuffer();
-        
+
         return ArchimateProjectStorage.GetProjectFromArrayBuffer(b);
     }
 
