@@ -2,13 +2,13 @@ import { ArchimateProjectStorage, ArchimateProject, ArchiDiagram, ArchiDiagramCh
 
 export class DiagramRenderer {
 
-    public static async SetDiagramFromDefault(div: HTMLElement) {
+    public static async SetDiagramFromDefault(div: HTMLElement): Promise<SVGSVGElement> {
         var svg = await this.BuildDefaultDiagram();
-        this.SetDiagram(div, svg);
+        return this.SetDiagram(div, svg);
     }
-    public static SetDiagram(div: HTMLElement, svg: Document) {
+    public static SetDiagram(div: HTMLElement, svg: Document): SVGSVGElement {
         div.innerHTML = '';
-        div.appendChild(svg.firstChild);
+        return div.appendChild(svg.firstChild) as SVGSVGElement;
     }
 
     public static async BuildDefaultDiagram(): Promise<Document> {
