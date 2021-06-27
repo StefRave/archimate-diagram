@@ -7,4 +7,5 @@ Diagrams are converted to SVG in the browser.
 
 Todo:
 * Support alternative elements forms
-* ?
+* Clip element in parent by bounds parents
+ 
