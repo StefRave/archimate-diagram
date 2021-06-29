@@ -63,7 +63,8 @@
 
     g.element>foreignObject div {
       display: flex;
-      justify-content: center;
+      flex-direction: column;
+      justify-content: top;
       align-items: top;
       text-align: center;
       margin-left: 2px;
@@ -71,19 +72,6 @@
       margin-top: 2px;
       margin-bottom: 10px;
       /* background-color: #0f02; */
-      pointer-events: none;
-    }
-
-    g.element.structure>foreignObject div {
-      margin-top: 10px;
-      padding-bottom: 15px;
-    }
-
-    g.element>foreignObject:last-child div {
-      align-items: center;
-    }
-
-    g.element>foreignObject div div {
       pointer-events: none;
       font-size: 12px;
       font-family: "Segoe UI", Verdana, Geneva, Tahoma, sans-serif;
@@ -95,23 +83,34 @@
       hyphens: auto;
       text-overflow: clip;
       overflow: hidden;
-      height: 100%;
-      /* 100% makes it possible click anywhere in the box to edit text */
-      width: 100%;
+    }
+
+    g.element.structure>foreignObject div {
+      margin-top: 10px;
+      padding-bottom: 15px;
+    }
+
+    g.element>foreignObject:last-child div {
+      justify-content: center;
+    }
+
+    g.element>foreignObject div div {
       vertical-align: top;
       /* background-color: #00f6; */
       line-height: 1.2em;
+      margin-top: 0px;
+      margin-bottom: 0px;
     }
 
-    g.element>foreignObject div div:focus {
+    g.element>foreignObject div:focus {
       pointer-events: all;
     }
 
     g.element.group>foreignObject div {
+      text-align: left;
       align-items: initial;
       margin-top: 1px;
       margin-bottom: 0px;
-      justify-content: left;
       height: 16px !important;
     }
 

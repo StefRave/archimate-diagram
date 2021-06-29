@@ -9,22 +9,33 @@ export function makeDraggable(svg: SVGSVGElement) {
   svg.addEventListener('pointermove', drag);
   svg.addEventListener('pointerup', endDrag);
   svg.addEventListener('pointerleave', endDrag);
+  svg.addEventListener('focusout', (evt) => {
+    var focusedElement = getElementFromChild(evt.target as Element);
+    if (focusedElement && selectedElement == null)
+      lastElementClicked = null;
+  });
 
   function startDrag(evt: PointerEvent) {
     var target = evt.target as SVGElement;
     selectedElement = target.closest('.element');
-    console.log(`! ${selectedElement?.id} ${lastElementClicked?.id}`);
-    if (selectedElement === lastElementClicked) {
-      var toEdit: HTMLDivElement = selectedElement.querySelector(':scope>foreignObject div div');
 
+    if (selectedElement !== null && selectedElement === lastElementClicked) {
+      var toEdit: HTMLDivElement = selectedElement.querySelector(':scope>foreignObject div');
+      var focusedElement = getElementFromChild(document.activeElement);
+      if (focusedElement !== selectedElement) {
       setTimeout(function() {
-        toEdit.focus();
-      }, 100);
-
+          toEdit.focus();
+          var range = document.createRange(); // select all text in div
+          range.selectNodeContents(toEdit);
+          var sel = window.getSelection();
+          sel.removeAllRanges();
+          sel.addRange(range);
+        }, 100);
+      }
+      selectedElement = null;
+      return;
     }
     lastElementClicked = selectedElement;
-    if (document.activeElement instanceof HTMLDivElement) // editing text
-      return;
 
     if (selectedElement != null) {
       offset = getMousePosition(evt);
@@ -44,6 +55,11 @@ export function makeDraggable(svg: SVGSVGElement) {
         parent.appendChild(selectedRelation);
       }
     }
+  }
+  function getElementFromChild(element: Element) {
+    while (element != null && !(element instanceof SVGGElement))
+      element = element.parentElement;
+    return element;
   }
   function getOffsetFromContent(element: SVGGElement): [number, number] {
     var elementOffsetX = 0;
@@ -69,8 +85,10 @@ export function makeDraggable(svg: SVGSVGElement) {
   function setDraggingAttributes(evt: PointerEvent) {
     var coord = getMousePosition(evt);
 
-    if ((selectedElement.parentElement as any as SVGGElement) !== contentElement)
+    if (selectedElement !== contentElement.lastElementChild) {
+      selectedElement.remove();
       contentElement.appendChild(selectedElement);
+    }
     if (!selectedElement.classList.contains('dragging')) {
       selectedElement.classList.add('dragging');
       svg.classList.add('dragging');

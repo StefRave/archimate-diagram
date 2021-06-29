@@ -118,7 +118,7 @@ export class DiagramRenderer {
             var div = e.querySelector('foreignObject>div>div');
             if (div != null) {
                 div.textContent = archiElement.Name;
-                div.setAttribute('contenteditable', 'true');
+                div.parentElement.setAttribute('contenteditable', 'true');
             }
             if (archiElement.Documentation) {
                 var d = e.ownerDocument.createElementNS(parent.namespaceURI, 'title');
