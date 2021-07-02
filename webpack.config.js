@@ -1,75 +1,111 @@
 const path = require('path');
 const webpack = require('webpack');
-const HtmlWebpackPlugin = require("html-webpack-plugin");
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const CopyPlugin = require('copy-webpack-plugin');
+const { CleanWebpackPlugin } = require('clean-webpack-plugin');
+const { merge } = require('webpack-merge');
 
-const ROOT = path.resolve(__dirname, 'src');
-const DESTINATION = path.resolve(__dirname, 'dist');
+const prodConfig = require('./webpack.prod');
+const devConfig = require('./webpack.dev');
 
-module.exports = {
-    context: ROOT,
+const resolveApp = relativePath => path.resolve(__dirname, relativePath);
 
+const getPublicPath = () => {
+  const homePage = require(resolveApp('package.json')).homepage;
+
+  if (process.env.NODE_ENV === 'development') {
+    return '';
+  }
+  else if (process.env.PUBLIC_URL) {
+    return process.env.PUBLIC_URL;
+  }
+  else if (homePage) {
+    return homePage;
+  }
+  return '/';
+}
+
+const getEnvVariables = () => ({ PUBLIC_URL: getPublicPath(), VERSION: require(resolveApp('package.json')).version });
+
+
+
+module.exports = function () {
+  const isEnvProduction = process.env.NODE_ENV === 'production';
+
+  const commonConfig = {
+    entry: './src/index.ts',
+    output: {
+      filename: '[name].bundle.js',
+      path: path.resolve(__dirname, 'dist'),
+      library: 'myLibrary',
+    },
     plugins: [
-        new HtmlWebpackPlugin({
-            template: path.resolve(__dirname, "src", "index.html")
-        })
+      new webpack.ProgressPlugin(),
+      new CleanWebpackPlugin(),
+      // new CopyPlugin({
+      //   patterns: [
+      //     {
+      //       from: 'public',
+      //       globOptions: {
+      //         ignore: [
+      //           '**/index.html'
+      //         ]
+      //       }
+      //     },
+      //   ],
+      // }),
+      new HtmlWebpackPlugin({
+        inject: true,
+        template: resolveApp('public/index.html'),
+        ...getEnvVariables()
+      }),
+      new MiniCssExtractPlugin({ filename: '[name].bundle.css' }),
     ],
 
-    entry: {
-        'main': './main.ts'
-    },
+    module: {
+      rules: [
+        {
+          test: /\.(ts|tsx)$/,
+          loader: 'ts-loader',
+          include: [resolveApp('src')],
+          exclude: [/node_modules/]
+        },
+        {
+          test: /.(scss|css)$/,
 
-    output: {
-        filename: '[name].bundle.js',
-        path: DESTINATION,
-        library: 'myLibrary',
-        assetModuleFilename: "[name][ext]",
+          use: [
+            {
+              loader: MiniCssExtractPlugin.loader
+            },
+            {
+              loader: "css-loader",
+
+              options: {
+                sourceMap: true
+              }
+            },
+            {
+              loader: "sass-loader",
+
+              options: {
+                sourceMap: true
+              }
+            }]
+        },
+        {
+          test: /\.(png|svg|jpg|gif|archimate)$/,
+          use: [
+            'file-loader',
+          ],
+        },]
     },
 
     resolve: {
-        extensions: ['.ts', '.js'],
-        modules: [
-            ROOT,
-            'node_modules'
-        ]
+      extensions: ['.tsx', '.ts', '.js']
     },
+  }
 
-    module: {
-        rules: [
-            /****************
-            * PRE-LOADERS
-            *****************/
-            {
-                enforce: 'pre',
-                test: /\.js$/,
-                use: 'source-map-loader'
-            },
-            {
-                enforce: 'pre',
-                test: /\.ts$/,
-                exclude: /node_modules/,
-                use: 'tslint-loader'
-            },
-
-            /****************
-            * LOADERS
-            *****************/
-            {
-                test: /\.ts$/,
-                exclude: [/node_modules/],
-                use: 'ts-loader'
-            },
-
-            {
-                test: /\.archimate$/,
-                type: 'asset/resource'
-            },
-            {
-                test: /\.svg$/,
-                type: 'asset/resource'
-            }
-        ]
-    },
-
-    devtool: 'source-map',
-    devServer: {}
-};
+  if (isEnvProduction) return merge(commonConfig, prodConfig);
+  else return merge(commonConfig, devConfig);
+}

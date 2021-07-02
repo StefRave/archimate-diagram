@@ -3,35 +3,35 @@ import JSZip from 'jszip';
 
 export class ArchimateProjectStorage {
     public static async GetDefaultProject(): Promise<ArchimateProject> {
-        var archimateFilePath = require('Archisurance.archimate');
-        var a = await fetch(archimateFilePath);
-        var b = await a.arrayBuffer();
+        const archimateFilePath = require('./Archisurance.archimate');
+        const a = await fetch(archimateFilePath.default);
+        const b = await a.arrayBuffer();
 
         return ArchimateProjectStorage.GetProjectFromArrayBuffer(b);
     }
 
     public static async GetProjectFromArrayBuffer(file: ArrayBuffer): Promise<ArchimateProject> {
-        var start = new Int8Array(file.slice(0, 2));
-        var data = file;
+        const start = new Int8Array(file.slice(0, 2));
+        let data = file;
         if (new TextDecoder().decode(start) === 'PK') {
-            var zip = await JSZip.loadAsync(file);
+            const zip = await JSZip.loadAsync(file);
             data = await zip.file('model.xml').async('arraybuffer');
         }
-        var xmlString = new TextDecoder().decode(data);
+        const xmlString = new TextDecoder().decode(data);
 
         const parser = new DOMParser();
-        var archiDoc = parser.parseFromString(xmlString, 'application/xml');
+        const archiDoc = parser.parseFromString(xmlString, 'application/xml');
 
         return ArchimateProjectStorage.GetFromDocument(archiDoc);
     }
 
     public static GetFromDocument(archiDoc: Document): ArchimateProject {
-        var result = archiDoc.evaluate('//element[@xsi:type]', archiDoc, this.resolver, XPathResult.ANY_TYPE, null);
-        var n: Node;
+        const result = archiDoc.evaluate('//element[@xsi:type]', archiDoc, this.resolver, XPathResult.ANY_TYPE, null);
+        let n: Node;
 
-        var objects: ArchiObject[] = [];
+        const objects: ArchiObject[] = [];
 
-        while (n = result.iterateNext()) {
+        while ((n = result.iterateNext())) {
             objects.push(this.ToArchiObject(<Element>n));
         }
         return new ArchimateProject(objects, archiDoc.firstElementChild);
@@ -45,14 +45,14 @@ export class ArchimateProjectStorage {
     }
 
     private static ToArchiObject(e: Element): ArchiObject {
-        var type = e.getAttribute('xsi:type');
+        let type = e.getAttribute('xsi:type');
         if (type.startsWith('archimate:'))
             type = type.substring(10);
 
-        var o: ArchiObject;
+        let o: ArchiObject;
 
         if (type.endsWith('Relationship')) {
-            var r = new Relationship;
+            const r = new Relationship;
             r.Source = e.getAttribute('source') ?? archiId(e.getElementsByTagName('source')[0]);
             r.Target = e.getAttribute('target') ?? archiId(e.getElementsByTagName('target')[0]);
             o = r;
@@ -129,7 +129,7 @@ export class ArchiDiagram extends ArchiObject {
 
     public get Children(): ArchiDiagramChild[] {
         if (this.children == null) {
-            var elements = Array.from(this.Element.querySelectorAll(':scope>children'))
+            const elements = Array.from(this.Element.querySelectorAll(':scope>children'))
                 .concat(Array.from(this.Element.querySelectorAll(':scope>child')));
             this.children = elements.map(c => new ArchiDiagramChild(c));
         }
@@ -148,7 +148,7 @@ export class ArchiDiagram extends ArchiObject {
 
     FlattenWithSourceConnections(e: ArchiDiagramObject[]): ArchiDiagramObject[] {
         return e.concat(e.flatMap(c => {
-            var result = this.FlattenWithSourceConnections(c.SourceConnections);
+            let result = this.FlattenWithSourceConnections(c.SourceConnections);
             if (c instanceof ArchiDiagramChild)
                 result = result.concat(this.FlattenWithSourceConnections(c.Children));
             return result;
@@ -168,7 +168,7 @@ export class ArchiDiagramObject {
     }
 
     sourceConnectionsFromElement() {
-        var elements = Array.from(this.Element.children).filter(e => e.nodeName.startsWith('sourceConnection'));
+        const elements = Array.from(this.Element.children).filter(e => e.nodeName.startsWith('sourceConnection'));
         return elements.map(c => new ArchiSourceConnection(c, this));
     }
 
@@ -188,13 +188,13 @@ export class ArchiDiagramChild extends ArchiDiagramObject {
     public FillColor: string;
 
     public get AbsolutePosition(): ElementPos {
-        var pos = this.parent?.AbsolutePosition ?? ElementPos.Zero;
+        const pos = this.parent?.AbsolutePosition ?? ElementPos.Zero;
         return pos.Add(new ElementPos(this.Bounds.X, this.Bounds.Y));
     }
 
     public get Children(): ArchiDiagramChild[] {
         if (this.children == null) {
-            var elements = Array.from(this.Element.querySelectorAll(':scope>children'))
+            const elements = Array.from(this.Element.querySelectorAll(':scope>children'))
                 .concat(Array.from(this.Element.querySelectorAll(':scope>child')));
             this.children = elements.map(c => new ArchiDiagramChild(c, this));
         }
@@ -213,7 +213,7 @@ export class ArchiDiagramChild extends ArchiDiagramObject {
             child.getAttribute('model') ??
             archiId(child.getElementsByClassName('archimateElement')[0]);
 
-        var bounds = child.getElementsByTagName('bounds')[0];
+        const bounds = child.getElementsByTagName('bounds')[0];
         if (this.Id === '3785')
             this.Id.toString();
 
@@ -241,7 +241,7 @@ export class ArchiSourceConnection extends ArchiDiagramObject {
         this.TargetId = element.getAttribute('target');
         this.RelationShipId = element.getAttribute('archimateRelationship') ??
             archiId(element.getElementsByTagName('archimateRelationship')[0]);
-        var bp = Array.from(element.children).filter(e => e.nodeName === 'bendpoints' || e.nodeName === 'bendpoint');
+        const bp = Array.from(element.children).filter(e => e.nodeName === 'bendpoints' || e.nodeName === 'bendpoint');
         this.BendPoints = bp.map(
             p => new ElementPos(
                 parseFloat(p.getAttribute('startX') ?? '0'),
@@ -254,7 +254,7 @@ export class ArchiSourceConnection extends ArchiDiagramObject {
 export function archiId(element: Element): string {
     if (element == null)
         return null;
-    var href = element.getAttribute('href');
+    const href = element.getAttribute('href');
     return href.split('#')[1];
 }
 

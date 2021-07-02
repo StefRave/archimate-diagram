@@ -8,7 +8,7 @@
             "type": "pwa-chrome",
             "request": "launch",
             "name": "Open index.html",
-            "url": "http://127.0.0.1:9000/index.html#1",
+            "url": "http://127.0.0.1:4200/index.html#1",
             "webRoot": "${workspaceFolder}/src"
         }
     ]

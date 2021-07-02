@@ -1,12 +1,22 @@
-// import { Greeter } from './greeter';
+ import { ArchimateProjectStorage } from './greeter';
+ import { DiagramRenderer } from './diagram-renderer';
+
+ function sleep(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 describe('Greeter', () => {
-    it('should greet', () => {
-        // const greeter = new Greeter('Juri');
-        // spyOn(console, 'log');
+    it('should greet', async () => {
+      // spyOn(console, 'log');
+      const svgTarget = document.createElement('div');
+      svgTarget.id = 'svgTarget';
+      document.body.appendChild(svgTarget);
 
-        // greeter.greet();
+      var project = await ArchimateProjectStorage.GetDefaultProject();
+      var diagram  = project.Diagrams[0];
+      var svg = await DiagramRenderer.BuildDiagram(project, diagram);
+      var s = DiagramRenderer.SetDiagram(svgTarget, svg);
 
-        // expect(console.log).toHaveBeenCalled();
+      expect(console.log).toHaveBeenCalled();
     });
 });

@@ -114,8 +114,12 @@
       height: 16px !important;
     }
 
-    g.note>foreignObject div {
-      justify-content: left;
+    g.element.note>foreignObject div{
+      text-align: left;
+      justify-content: flex-start;
+      margin-top: 1px;
+      margin-bottom: 0px;
+      white-space: pre-wrap;
     }
 
     [contenteditable="true"]:active,
@@ -632,7 +636,7 @@
       </foreignObject>
     </g>
 
-    <g id="Note" transform="translate(552, 312)" class="group element">
+    <g id="Note" transform="translate(552, 312)" class="note element">
       <path fill="white" d="M0,60 v-60 h168 v52 l-8 8  z" />
       <foreignObject width="168px" height="60px">
         <div xmlns="http://www.w3.org/1999/xhtml" style="width: 168px; height: 60px">
