@@ -3,11 +3,10 @@ import JSZip from 'jszip';
 
 export class ArchimateProjectStorage {
     public static async GetDefaultProject(): Promise<ArchimateProject> {
-        const archimateFilePath = require('./Archisurance.archimate');
-        const a = await fetch(archimateFilePath.default);
-        const b = await a.arrayBuffer();
+        const archisuranceSource = require('./Archisurance.archimate');
+        const enc = new TextEncoder();
 
-        return ArchimateProjectStorage.GetProjectFromArrayBuffer(b);
+        return ArchimateProjectStorage.GetProjectFromArrayBuffer(enc.encode(archisuranceSource));
     }
 
     public static async GetProjectFromArrayBuffer(file: ArrayBuffer): Promise<ArchimateProject> {
@@ -66,7 +65,7 @@ export class ArchimateProjectStorage {
         // o.FilePath = path;
         o.Id = e.getAttribute('id');
         o.Name = e.getAttribute('name');
-        o.Documentation = e.getAttribute('documentation');
+        o.Documentation = e.getAttribute('documentation') ?? e.getElementsByTagName('documentation')[0]?.textContent;
         o.Element = e;
 
         return o;
@@ -129,9 +128,9 @@ export class ArchiDiagram extends ArchiObject {
 
     public get Children(): ArchiDiagramChild[] {
         if (this.children == null) {
-            const elements = Array.from(this.Element.querySelectorAll(':scope>children'))
-                .concat(Array.from(this.Element.querySelectorAll(':scope>child')));
-            this.children = elements.map(c => new ArchiDiagramChild(c));
+            this.children = Array.from(this.Element.children)
+                .filter(n => n.nodeName == 'children' || n.nodeName == 'child')
+                .map(c => new ArchiDiagramChild(c));
         }
         return this.children;
     }
@@ -194,14 +193,12 @@ export class ArchiDiagramChild extends ArchiDiagramObject {
 
     public get Children(): ArchiDiagramChild[] {
         if (this.children == null) {
-            const elements = Array.from(this.Element.querySelectorAll(':scope>children'))
-                .concat(Array.from(this.Element.querySelectorAll(':scope>child')));
-            this.children = elements.map(c => new ArchiDiagramChild(c, this));
+            this.children = Array.from(this.Element.children)
+                .filter(n => n.nodeName == 'children' || n.nodeName == 'child')
+                .map(c => new ArchiDiagramChild(c, this));
         }
         return this.children;
     }
-
-
 
     constructor(child: Element, parent: ArchiDiagramChild = null) {
         super(child);

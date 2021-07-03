@@ -1,7 +1,7 @@
 {
-	"name": "archimate-diagram",
-	"version": "0.0.1",
-	"description": "View Archi diagrams",
+  "name": "archimate-diagram",
+  "version": "0.0.1",
+  "description": "View Archi diagrams",
   "keywords": [
     "archimate",
     "diagram"
@@ -31,10 +31,10 @@
     "webpack-cli": "^4.7.2",
     "webpack-dev-server": "^4.0.0-beta.3",
     "webpack-merge": "^5.8.0"
-	},
-	"dependencies": {
-		"jszip": "^3.6.0"
-	},
+  },
+  "dependencies": {
+    "jszip": "^3.6.0"
+  },
   "scripts": {
     "start": "cross-env NODE_ENV=development webpack serve",
     "coverage": "jest --collect-coverage",

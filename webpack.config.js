@@ -34,11 +34,11 @@ module.exports = function () {
   const isEnvProduction = process.env.NODE_ENV === 'production';
 
   const commonConfig = {
-    entry: './src/index.ts',
+    context: path.resolve(__dirname, 'src'),
+    entry: './index.ts',
     output: {
       filename: '[name].bundle.js',
       path: path.resolve(__dirname, 'dist'),
-      library: 'myLibrary',
     },
     plugins: [
       new webpack.ProgressPlugin(),
@@ -68,7 +68,6 @@ module.exports = function () {
         {
           test: /\.(ts|tsx)$/,
           loader: 'ts-loader',
-          include: [resolveApp('src')],
           exclude: [/node_modules/]
         },
         {
@@ -94,10 +93,12 @@ module.exports = function () {
             }]
         },
         {
-          test: /\.(png|svg|jpg|gif|archimate)$/,
-          use: [
-            'file-loader',
-          ],
+          test: /\.(png|jpg|gif)$/,
+          type: 'asset/resource'
+        },
+        {
+          test: /\.(svg|archimate)$/,
+          type: 'asset/source'
         },]
     },
 

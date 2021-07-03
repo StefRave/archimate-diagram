@@ -1,21 +1,18 @@
 {
-  "compilerOptions": {
-    "allowSyntheticDefaultImports": true,
-    "sourceMap": true,
-    "noImplicitAny": true,
-    "module": "commonjs",
-    "target": "es2015",
-    "outDir": "./dist",
-    "allowJs": true,
-    "moduleResolution": "node",
-    "baseUrl": ".",
-    "paths": {
-      "*": ["*", "src/*"]
-    },
-    "lib": [ "es2019", "DOM" ]
-  },
-  "include": [
-    "src/**/*",
+	"compilerOptions": {
+		"outDir": "./dist/",
+		"sourceMap": true,
+		"noImplicitAny": true,
+		"module": "commonjs",
+		"target": "es2015",
+		"declaration": false,
+		"allowSyntheticDefaultImports": true,
+		"esModuleInterop": true,
+		"lib": [ "es2019", "DOM" ],
+		"baseUrl": "src"
+	},
+	"include": [
+		"src/**/*",
     "custom.d.ts"
-  ]
+	]
 }

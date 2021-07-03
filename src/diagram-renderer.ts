@@ -20,12 +20,9 @@ export class DiagramRenderer {
     }
 
     public static async BuildDiagram(project: ArchimateProject, diagram: ArchiDiagram): Promise<Document> {
-        const templateFile = require('./archimate.svg');
-        const a = await fetch(templateFile.default);
-        const b = await a.text();
-
+        const svgSource = require('./archimate.svg');
         const parser = new DOMParser();
-        const templateDoc = parser.parseFromString(b, 'application/xml');
+        const templateDoc = parser.parseFromString(svgSource, 'application/xml');
 
         const content = templateDoc.getElementById('Content');
 
@@ -122,19 +119,27 @@ export class DiagramRenderer {
             const div = e.querySelector('foreignObject>div>div');
             if (div != null) {
                 div.textContent = archiElement.Name;
-                div.parentElement.setAttribute('contenteditable', 'true');
+                div.setAttribute('contenteditable', 'true');
+
+                if (!e.classList.contains('group') && !e.classList.contains('note')) {
+                  const d = e.ownerDocument.createElementNS(div.namespaceURI, 'div');
+                  d.textContent = archiElement.EntityType;
+                  d.setAttribute('class', 'elementType');
+                  div.parentNode.appendChild(d);
+                }
             }
             if (archiElement.Documentation) {
-                const d = e.ownerDocument.createElementNS(parent.namespaceURI, 'title');
+                const d = e.ownerDocument.createElementNS(e.namespaceURI, 'title');
                 d.textContent = archiElement.Documentation;
                 e.insertBefore(d, e.firstChild);
             }
 
             let style = '';
             if (child.FillColor)
-                style += 'fill: ' + child.FillColor + ' ';
+                style += 'fill: ' + child.FillColor + ' ';5
             if (style !== '') {
-                const toStyle = e.querySelectorAll(':scope>rect, :scope>path');
+                const toStyle = Array.from(e.children)
+                    .filter(n => n.nodeName == 'rect' || n.nodeName == 'path');
                 toStyle.forEach(se => se.setAttribute('style', style));
             }
 

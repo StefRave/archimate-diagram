@@ -3,10 +3,11 @@ import { ArchimateProjectStorage, ArchimateProject, ArchiDiagram } from './greet
 import { DiagramRenderer } from './diagram-renderer';
 import { makeDraggable} from './diagram-editor';
 
-module.exports = {
-    ArchimateProjectStorage, DiagramRenderer,
-    makeDraggable, onDocumentLoad, uploadFile, onSelectView: changeView
+(window as any).my = {
+  uploadFile: uploadFile,
+  onSelectView: changeView,
 };
+
 
 const svgTarget = document.getElementById('svgTarget');
 let project: ArchimateProject = null;
@@ -21,7 +22,7 @@ async function onDocumentLoad() {
     activateLoadedProject(diagram);
 }
 
-async function changeView(viewId: string) {
+export async function changeView(viewId: string) {
     const diagram = project.Diagrams.filter(d => d.Id === viewId)[0] ?? project.Diagrams[0];
     displayDiagram(diagram);
 }

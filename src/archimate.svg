@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="920"
-  height="1200">
+  height="1200" class='hideElementType'>
   <script href="DiagramEditor.js" />
   <style>
     svg.dragging {
@@ -59,23 +59,22 @@
     foreignObject {
       overflow: visible;
       pointer-events: none;
+      user-select: none;
     }
 
     g.element>foreignObject div {
       display: flex;
       flex-direction: column;
-      justify-content: top;
-      align-items: top;
+      align-items: center;
+      width: 100%;
       text-align: center;
-      margin-left: 2px;
-      margin-right: 5px;
-      margin-top: 2px;
-      margin-bottom: 10px;
-      /* background-color: #0f02; */
+      padding: 2px;
+      box-sizing: border-box;
+      /* background-color: #7779; */
       pointer-events: none;
       font-size: 12px;
       font-family: "Segoe UI", Verdana, Geneva, Tahoma, sans-serif;
-      color: #000000;
+      color: #000;
       white-space: normal;
       overflow-wrap: break-word;
       word-wrap: break-word;
@@ -86,47 +85,52 @@
     }
 
     g.element.structure>foreignObject div {
-      margin-top: 10px;
-      padding-bottom: 15px;
+      padding: 2px 2px 2px 2px;
     }
 
-    g.element>foreignObject:last-child div {
-      justify-content: center;
+    g.element>foreignObject:last-child div:after {
+      content: '';  /* Insert pseudo-element */
+      margin: auto; /* Make it push flex items to the center */
+    }
+    g.element:not(.note)>foreignObject:last-child div:before {
+      content: '';  /* Insert pseudo-element */
+      margin: auto; /* Make it push flex items to the center */
     }
 
-    g.element>foreignObject div div {
-      vertical-align: top;
-      /* background-color: #00f6; */
-      line-height: 1.2em;
-      margin-top: 0px;
-      margin-bottom: 0px;
+    g.element>foreignObject div.elementType {
+      /* background-color: #6066; */
+      font-size: x-small;
+      height: auto;
+      padding: 0px 0px 2px 0px;
+    }
+    svg.hideElementType div.elementType {
+      display: none;
     }
 
     g.element>foreignObject div:focus {
       pointer-events: all;
     }
 
-    g.element.group>foreignObject div {
-      text-align: left;
-      align-items: initial;
-      margin-top: 1px;
-      margin-bottom: 0px;
-      height: 16px !important;
+    g.element.group>foreignObject div{
+      align-items:  flex-start;
+      padding: 0px 2px 0px 2px;
+      height: 18px !important;
     }
 
     g.element.note>foreignObject div{
       text-align: left;
-      justify-content: flex-start;
-      margin-top: 1px;
-      margin-bottom: 0px;
+      align-items: flex-start;
+      margin: 0px;
       white-space: pre-wrap;
+      height: 100%;
     }
 
     [contenteditable="true"]:active,
     [contenteditable="true"]:focus {
       border: none;
       outline: none;
-      background-color: white;
+      background-color: #fff;
+      min-height: 1em;
     }
 
     g.element.junction.or {
@@ -253,7 +257,7 @@
       <ellipse cx="-9" cy="9" rx="5" ry="5" stroke="black" fill="none" />
     </g>
     <g id="InterfaceIcon">
-      <ellipse cx="-8" cy="9" rx="5" ry="5" stroke="black" />
+      <ellipse cx="-8" cy="9" rx="5" ry="5" stroke="black" fill="none" />
       <path d="M -13 9 h -5" fill="none" stroke="black" />
     </g>
     <g id="ProcessIcon">
@@ -391,7 +395,10 @@
       <path d="M -25 12 h 14 M -27 15 h 14 M -29 18 h 14" fill="none" stroke="black" />
     </g>
     <g id="TodoIcon" transform="translate(-13 18)">
-      <text x="0" y="0" fill="#000000" font-family="Helvetica" font-size="17px" text-anchor="middle">&#x1F937;</text>
+      <text x="0" y="0" fill="#000000" font-family="Helvetica" font-size="16px" text-anchor="middle">🤷</text>
+    </g>
+    <g id="ExperimentIcon" transform="translate(-13 18)">
+      <text x="0" y="0" fill="#000000" font-family="Helvetica" font-size="16px" text-anchor="middle">🧪</text>
     </g>
 
     <pattern id="smallGrid" width="12" height="12" patternUnits="userSpaceOnUse">
@@ -609,7 +616,7 @@
       <path d="M 0 8 l 90 0 l 0 -8" fill="none" />
       <foreignObject width="168px" height="60px">
         <div xmlns="http://www.w3.org/1999/xhtml" style="width: 168px; height: 60px">
-          <div contenteditable="true">Product</div>
+          <div>Product</div>
         </div>
       </foreignObject>
     </g>
@@ -650,7 +657,7 @@
       <path d="M 0 18 l 156 0" stroke="#eee`" />
       <foreignObject width="156px" height="6px">
         <div xmlns="http://www.w3.org/1999/xhtml" style="width: 156px; height: 16px">
-          <div>Group da as dsa da d as das dadasda ads</div>
+          <div>Group</div>
         </div>
       </foreignObject>
     </g>
@@ -943,6 +950,16 @@
       </foreignObject>
     </g>
 
+    <g id="experiment" transform="translate(12, 528)" class="undefined element">
+      <rect width="168" height="60" />
+      <use xlink:href="#ExperimentIcon" x="168" y="0" />
+      <foreignObject width="168px" height="60px">
+        <div xmlns="http://www.w3.org/1999/xhtml" style="width: 168px; height: 60px">
+          <div>Experiment</div>
+          <div class="elementType">type</div>
+        </div>
+      </foreignObject>
+    </g>
 
     <g id="Junction" transform="translate(552, 24)" class="element junction">
       <ellipse cx="5" cy="5" rx="5" ry="5" />

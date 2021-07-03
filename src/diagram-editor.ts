@@ -24,6 +24,7 @@ export function makeDraggable(svg: SVGSVGElement) {
     if (evt.key === 'Enter' && targetElement.classList.contains('note')) {
       evt.preventDefault();
       const sel = window.getSelection();
+      const atEnd = sel.focusOffset == sel.anchorNode.textContent.length;
       const textContentCount = sel.focusNode.parentNode.childNodes.length;
       document.execCommand('insertHTML', false, '\n');
       if (textContentCount < sel.focusNode.parentNode.childNodes.length) {
@@ -37,6 +38,9 @@ export function makeDraggable(svg: SVGSVGElement) {
         sel.removeAllRanges();
         sel.addRange(range);
       }
+      else if(atEnd && sel.focusOffset != sel.anchorNode.textContent.length) {
+        document.execCommand('insertHTML', false, '\n');
+      }
       return false; 
     }
     else if (evt.key == 'Enter' || evt.key == 'Escape') {
@@ -49,7 +53,7 @@ export function makeDraggable(svg: SVGSVGElement) {
     selectedElement = target.closest('.element');
 
     if (selectedElement !== null && selectedElement === lastElementClicked) {
-      const toEdit: HTMLDivElement = selectedElement.querySelector(':scope>foreignObject div');
+      const toEdit: HTMLDivElement = selectedElement.querySelector(':scope>foreignObject>div>div');
       const focusedElement = getElementFromChild(document.activeElement);
       if (focusedElement !== selectedElement) {
       setTimeout(function() {
