@@ -101,8 +101,10 @@ export class ArchimateProject {
     public get Diagrams(): ArchiDiagram[] {
         return this.objects.filter(o => o instanceof ArchiDiagram).map(o => <ArchiDiagram>o);
     }
-    public GetTargetRelationShips = (id: string) => this.relationships.filter(r => r.Target === id);
-    public GetSourceRelationShips = (id: string) => this.relationships.filter(r => r.Source === id);
+    public GetTargetRelationShips = (id: string, type?: string) => this.relationships.filter(r => r.Target === id && (!type || type == r.EntityType));
+    public GetSourceRelationShips = (id: string, type?: string) => this.relationships.filter(r => r.Source === id && (!type || type == r.EntityType));
+    public GetRelatedElementForTarget = (id: string, type?: string) => this.GetTargetRelationShips(id, type).map(r => this.GetById(r.Source));
+    public GetRelatedElementForSource = (id: string, type?: string) => this.GetSourceRelationShips(id, type).map(r => this.GetById(r.Target));
     public GetDiagramsWithElementId = (id: string) => this.Diagrams.filter(e => e.GetElementIds().some(de => de === id));
 }
 

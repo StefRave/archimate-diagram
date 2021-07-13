@@ -56,31 +56,53 @@
       stroke: #000;
     }
 
+    
     foreignObject {
-      overflow: visible;
       pointer-events: none;
       user-select: none;
-    }
-
-    g.element>foreignObject div {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      width: 100%;
-      text-align: center;
-      padding: 2px;
-      box-sizing: border-box;
-      /* background-color: #7779; */
-      pointer-events: none;
-      font-size: 12px;
       font-family: "Segoe UI", Verdana, Geneva, Tahoma, sans-serif;
       color: #000;
+      font-size: 12px;
+    }
+    g.con>foreignObject>div {
+      /* background-color: #7779; */
+      display: flex;
+      justify-content: center;
+      align-items: center;
+
+      width: 100%;
+      height: 100%;
+      padding: 0;
       white-space: normal;
       overflow-wrap: break-word;
       word-wrap: break-word;
       word-break: break-word;
       hyphens: auto;
-      text-overflow: clip;
+      text-overflow: ellipse;
+    }
+    
+    g.con>foreignObject>div>div {
+      background-color: #fff9;
+      padding: 0px 0px 2px 0px;
+    }
+
+    g.element>foreignObject div {
+      display: flex;
+      align-items: center;
+      text-align: center;
+
+      width: 100%;
+      flex-wrap: wrap;
+      flex-direction: column;
+      padding: 2px;
+      box-sizing: border-box;
+      /* background-color: #7779; */
+      white-space: normal;
+      overflow-wrap: break-word;
+      word-wrap: break-word;
+      word-break: break-word;
+      hyphens: auto;
+      text-overflow: ellipse;
       overflow: hidden;
     }
 
@@ -88,21 +110,24 @@
       padding: 2px 2px 2px 2px;
     }
 
-    g.element>foreignObject:last-child div:after {
-      content: '';  /* Insert pseudo-element */
-      margin: auto; /* Make it push flex items to the center */
+    g.element>foreignObject>div>div:first-child {
+      margin-bottom: auto;
+      /* Make it push flex items to the center */
+      line-height: 1em;
     }
-    g.element:not(.note)>foreignObject:last-child div:before {
-      content: '';  /* Insert pseudo-element */
-      margin: auto; /* Make it push flex items to the center */
+
+    g.element>foreignObject:last-child>div>div:first-child {
+      margin-top: auto;
+      /* Make it push flex items to the center */
     }
 
     g.element>foreignObject div.elementType {
       /* background-color: #6066; */
       font-size: x-small;
       height: auto;
-      padding: 0px 0px 2px 0px;
+      padding: 0px;
     }
+
     svg.hideElementType div.elementType {
       display: none;
     }
@@ -111,13 +136,13 @@
       pointer-events: all;
     }
 
-    g.element.group>foreignObject div{
-      align-items:  flex-start;
+    g.element.group>foreignObject div {
+      align-items: flex-start;
       padding: 0px 2px 0px 2px;
       height: 18px !important;
     }
 
-    g.element.note>foreignObject div{
+    g.element.note>foreignObject div {
       text-align: left;
       align-items: flex-start;
       margin: 0px;
@@ -149,7 +174,9 @@
     g.element:hover {
       filter: drop-shadow(0px 0px 4px #666);
     }
-    g.element.drop:hover, g.element.drop {
+
+    g.element.drop:hover,
+    g.element.drop {
       filter: drop-shadow(0px 0px 4px #66f);
     }
 
@@ -395,10 +422,10 @@
       <path d="M -25 12 h 14 M -27 15 h 14 M -29 18 h 14" fill="none" stroke="black" />
     </g>
     <g id="TodoIcon" transform="translate(-13 18)">
-      <text x="0" y="0" fill="#000000" font-family="Helvetica" font-size="16px" text-anchor="middle">🤷</text>
+      <text x="0" y="0" fill="#000000" font-family="Helvetica" font-size="16px" text-anchor="middle">&#x1F937;</text>
     </g>
     <g id="ExperimentIcon" transform="translate(-13 18)">
-      <text x="0" y="0" fill="#000000" font-family="Helvetica" font-size="16px" text-anchor="middle">🧪</text>
+      <text x="0" y="0" fill="#000000" font-family="Helvetica" font-size="16px" text-anchor="middle">&#x1F9ea;</text>
     </g>
 
     <pattern id="smallGrid" width="12" height="12" patternUnits="userSpaceOnUse">
@@ -643,7 +670,7 @@
       </foreignObject>
     </g>
 
-    <g id="Note" transform="translate(552, 312)" class="note element">
+    <g id="Note" transform="translate(372, 312)" class="note element">
       <path fill="white" d="M0,60 v-60 h168 v52 l-8 8  z" />
       <foreignObject width="168px" height="60px">
         <div xmlns="http://www.w3.org/1999/xhtml" style="width: 168px; height: 60px">
@@ -655,7 +682,7 @@
     <g id="Group" transform="translate(12, 384)" class="group element">
       <path fill="#ccc" d="M168,18 l-12,0 l0,-18 l-156,0 l0,60 l168,0 z" />
       <path d="M 0 18 l 156 0" stroke="#eee`" />
-      <foreignObject width="156px" height="6px">
+      <foreignObject width="156px" height="16px">
         <div xmlns="http://www.w3.org/1999/xhtml" style="width: 156px; height: 16px">
           <div>Group</div>
         </div>
@@ -751,7 +778,7 @@
       </foreignObject>
     </g>
 
-    <g id="CommunicationNetwork" transform="translate(730, 600)" class="technology active element">
+    <g id="CommunicationNetwork" transform="translate(552, 600)" class="technology active element">
       <rect width="168" height="60" />
       <use xlink:href="#CommunicationNetworkIcon" x="168" y="0" />
       <foreignObject width="168px" height="60px">
@@ -761,7 +788,7 @@
       </foreignObject>
     </g>
 
-    <g id="todo" transform="translate(372, 312)" class="undefined element">
+    <g id="todo" transform="translate(372, 528)" class="undefined element">
       <rect width="168" height="60" />
       <use xlink:href="#TodoIcon" x="168" y="0" />
       <foreignObject width="168px" height="60px">
@@ -975,42 +1002,56 @@
       elements</text>
     <text x="455" y="14" fill="#000000" font-family="Helvetica" font-size="12px" text-anchor="middle">Passive
       Structure elements</text>
-    <g transform="translate(640, 24)">
-      <text x="-60" y="10" fill="#000000" font-family="Helvetica" font-size="11px" text-anchor="flow">Composition</text>
-      <path d="M 10 10 h 150" class="Composition Relationship" />
+    <g transform="translate(580, 24)">
+      <text x="0" y="10" fill="#000000" font-family="Helvetica" font-size="11px" text-anchor="flow">Composition</text>
+      <path d="M 70 10 h 150" class="Composition Relationship" />
 
-      <text x="-60" y="25" fill="#000000" font-family="Helvetica" font-size="11px" text-anchor="flow">Aggregation</text>
-      <path d="M 10 25 h 150" class="Aggregation Relationship" />
+      <text x="0" y="25" fill="#000000" font-family="Helvetica" font-size="11px" text-anchor="flow">Aggregation</text>
+      <path d="M 70 25 h 150" class="Aggregation Relationship" />
 
-      <text x="-60" y="40" fill="#000000" font-family="Helvetica" font-size="11px" text-anchor="flow">Triggering</text>
-      <path d="M 10 40 h 150" class="Triggering Relationship" />
+      <text x="0" y="40" fill="#000000" font-family="Helvetica" font-size="11px" text-anchor="flow">Triggering</text>
+      <path d="M 70 40 h 150" class="Triggering Relationship" />
 
-      <text x="-60" y="55" fill="#000000" font-family="Helvetica" font-size="11px"
+      <text x="0" y="55" fill="#000000" font-family="Helvetica" font-size="11px"
         text-anchor="flow">Specialization</text>
-      <path d="M 10 55 h 150" class="Specialization Relationship" />
+      <path d="M 70 55 h 150" class="Specialization Relationship" />
 
-      <text x="-60" y="70" fill="#000000" font-family="Helvetica" font-size="11px" text-anchor="flow">Access</text>
-      <path d="M 10 70 h 150" class="Access Relationship Read Write" />
+      <text x="0" y="70" fill="#000000" font-family="Helvetica" font-size="11px" text-anchor="flow">Access</text>
+      <path d="M 70 70 h 150" class="Access Relationship Read Write" />
 
-      <text x="-60" y="85" fill="#000000" font-family="Helvetica" font-size="11px" text-anchor="flow">Realization</text>
-      <path d="M 10 85 h 150" class="Realization Relationship" />
+      <text x="0" y="85" fill="#000000" font-family="Helvetica" font-size="11px" text-anchor="flow">Realization</text>
+      <path d="M 70 85 h 150" class="Realization Relationship" />
 
-      <text x="-60" y="100" fill="#000000" font-family="Helvetica" font-size="11px"
+      <text x="0" y="100" fill="#000000" font-family="Helvetica" font-size="11px"
         text-anchor="flow">Aggregation</text>
-      <path d="M 10 100 h 150" class="Flow Relationship" />
+      <path d="M 70 100 h 150" class="Flow Relationship" />
 
-      <text x="-60" y="115" fill="#000000" font-family="Helvetica" font-size="11px" text-anchor="flow">Assignment</text>
-      <path d="M 10 115 h 150" class="Assignment Relationship" />
+      <text x="0" y="115" fill="#000000" font-family="Helvetica" font-size="11px" text-anchor="flow">Assignment</text>
+      <path d="M 70 115 h 150" class="Assignment Relationship" />
 
-      <text x="-60" y="130" fill="#000000" font-family="Helvetica" font-size="11px" text-anchor="flow">Serving</text>
-      <path d="M 10 130 h 150" class="Serving Relationship" />
+      <text x="0" y="130" fill="#000000" font-family="Helvetica" font-size="11px" text-anchor="flow">Serving</text>
+      <path d="M 70 130 h 150" class="Serving Relationship" />
 
-      <text x="-60" y="145" fill="#000000" font-family="Helvetica" font-size="11px" text-anchor="flow">Influence</text>
-      <path d="M 10 145 h 150" class="Influence Relationship" />
-      <text x="150" y="140" fill="#000000" font-family="Helvetica" font-size="11px" text-anchor="middle">+/-</text>
+      <text x="0" y="145" fill="#000000" font-family="Helvetica" font-size="11px" text-anchor="flow">Influence</text>
+      <path d="M 70 145 h 150" class="Influence Relationship" />
+      <text x="200" y="140" fill="#000000" font-family="Helvetica" font-size="11px" text-anchor="middle">+/-</text>
 
-      <path fill="none" d="M200,50 v40 q0,10,10,10 h 40" stroke="black" />
-      <path fill="none" d="M220,50 v45 a20,10,0,0,0,0,10 v 40" stroke="black" />
+      <path fill="none" d="M20,160 v20 q0,10,10,10 h 40" stroke="black" />
+      <path fill="none" d="M40,160 v25 a20,10,0,0,0,0,10 v 20" stroke="black" />
+
+      <g class="con selected">
+        <path d="M 0 240 L 200 240 " class="Assignment Relationship"></path>
+        <path d="M 0 240 L 200 240 " class="RelationshipDetect"></path>
+        <foreignObject x="20" y="220" width="160px" height="40px">
+          <div xmlns="http://www.w3.org/1999/xhtml">
+            <div>Line Text</div>
+          </div>
+        </foreignObject>
+        <circle cx="0" cy="240" r="3"></circle>
+        <circle cx="200" cy="240" r="3"></circle>
+        <circle cx="100" cy="240" r="2"></circle>
+      </g>
+
     </g>
   </g>
 </svg>

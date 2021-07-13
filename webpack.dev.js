@@ -6,7 +6,6 @@ module.exports = {
   watch: true,
   devServer: {
     static: path.resolve(__dirname, 'dist'),
-    port: 4200,
     open: true
   },
   optimization: {
