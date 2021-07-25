@@ -164,6 +164,8 @@ export function makeDraggable(svg: SVGSVGElement) {
       }
       selectedElement.classList.remove('dragging');
       svg.classList.remove('dragging');
+    } else if (selectedElement) {
+      selectedElement.classList.add('selected');
     }
     if (selectedDropTarget) {
       selectedDropTarget.classList.remove('drop');

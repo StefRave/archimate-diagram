@@ -1,5 +1,5 @@
  import { ArchimateProjectStorage } from './greeter';
- import { DiagramRenderer } from './diagram-renderer';
+ import { DiagramRenderer, DiagramTemplate } from './diagram-renderer';
 
  function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -14,8 +14,8 @@ describe('Greeter', () => {
 
       const project = await ArchimateProjectStorage.GetDefaultProject();
       const diagram  = project.Diagrams[0];
-      const svg = await DiagramRenderer.BuildDiagram(project, diagram);
-      const s = DiagramRenderer.SetDiagram(svgTarget, svg);
+      const svg = DiagramRenderer.BuildSvg(project, diagram, DiagramTemplate.GetFromDrawing());
+      const s = svgTarget.appendChild(svg.firstChild);
 
       expect(s).toMatchSnapshot();
     });

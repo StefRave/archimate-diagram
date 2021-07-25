@@ -1,6 +1,6 @@
 import './index.scss';
 import { ArchimateProjectStorage, ArchimateProject, ArchiDiagram } from './greeter';
-import { DiagramRenderer } from './diagram-renderer';
+import { DiagramRenderer, DiagramTemplate } from './diagram-renderer';
 import { makeDraggable} from './diagram-editor';
 
 (window as any).my = {
@@ -10,6 +10,7 @@ import { makeDraggable} from './diagram-editor';
 
 
 const svgTarget = document.getElementById('svgTarget');
+const diagramTemplate = DiagramTemplate.GetFromDrawing();
 
 async function onDocumentLoad() {
   const project = await ArchimateProjectStorage.GetDefaultProject();
@@ -41,10 +42,13 @@ async function activateLoadedProject(project: ArchimateProject, diagram: ArchiDi
   displayDiagram(project, diagram);
 }
 async function displayDiagram(project: ArchimateProject, diagram: ArchiDiagram) {
-  const svg = await DiagramRenderer.BuildDiagram(project, diagram);
-  const s = DiagramRenderer.SetDiagram(svgTarget, svg);
+  const svg = DiagramRenderer.BuildSvg(project, diagram, diagramTemplate);
+  svgTarget.innerHTML = '';
+
+  const s = svgTarget.appendChild(svg.firstChild) as SVGSVGElement;
   makeDraggable(s);
 }
+
 async function uploadFile() {
   const fileupload = <HTMLInputElement>document.getElementById('fileUpload');
   const reader = new FileReader();
