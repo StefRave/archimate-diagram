@@ -14,7 +14,8 @@ describe('Greeter', () => {
 
       const project = await ArchimateProjectStorage.GetDefaultProject();
       const diagram  = project.Diagrams[0];
-      const svg = DiagramRenderer.BuildSvg(project, diagram, DiagramTemplate.GetFromDrawing());
+      const renderer = new DiagramRenderer(project, diagram, DiagramTemplate.getFromDrawing())
+      const svg = renderer.buildSvg();
       const s = svgTarget.appendChild(svg.firstChild);
 
       expect(s).toMatchSnapshot();

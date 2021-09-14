@@ -1,24 +1,36 @@
-export function makeDraggable(svg: SVGSVGElement) {
-  const contentElement = svg.getElementById('Content') as SVGElement;
-  let selectedElement: SVGGElement = null;
-  let offset: any = false;
-  let lastElementClicked: SVGElement = null;
-  let selectedRelation: SVGElement = null;
-  let selectedDropTarget: SVGGElement = null;
-  svg.addEventListener('pointerdown', startDrag);
-  svg.addEventListener('pointermove', drag);
-  svg.addEventListener('pointerup', endDrag);
-  svg.addEventListener('pointerleave', endDrag);
-  svg.addEventListener('focusout', (evt) => {
-    const focusedElement = getElementFromChild(evt.target as Element);
-    if (focusedElement && selectedElement == null)
-      lastElementClicked = null;
-    const sel = window.getSelection();
-    sel.removeAllRanges();
-  });
-  svg.addEventListener('keydown', onkeydown);
+import { ArchiDiagram, ArchiDiagramChild, ArchimateProject, ArchiSourceConnection } from './greeter';
+import { DiagramTemplate } from './diagram-renderer';
 
-  function onkeydown(evt: KeyboardEvent) {
+export class DiagramEditor {
+  private readonly contentElement: SVGElement;
+  private selectedElement: SVGGElement;
+  private startDragMousePosition: {x: number, y: number};
+  private dragingElementOriginalAbsolotePosition: {x: number, y: number};
+  private lastElementClicked: SVGElement;
+  private selectedRelation: SVGElement;
+  private selectedDropTarget: SVGGElement;
+
+  constructor(private svg: SVGSVGElement, private project: ArchimateProject, private diagram: ArchiDiagram, private diagramTemplate: DiagramTemplate) {
+    this.contentElement = this.svg.getElementById('Content') as SVGElement;
+  }
+
+  public makeDraggable() {
+
+    this.svg.addEventListener('pointerdown', (evt) => this.onPointerDown(evt));
+    this.svg.addEventListener('pointermove', (evt) => this.onPointerMove(evt));
+    this.svg.addEventListener('pointerup', (evt) => this.onPointerUp(evt));
+    // this.svg.addEventListener('pointerleave', (evt) => this.endDrag(evt));
+    this.svg.addEventListener('focusout', (evt) => {
+      const focusedElement = this.getElementFromChild(evt.target as Element);
+      if (focusedElement && this.selectedElement == null)
+        this.lastElementClicked = null;
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+    });
+    this.svg.ownerDocument.addEventListener('keydown', (evt) => this.onKeyDown(evt));
+  }
+
+  private onKeyDown(evt: KeyboardEvent) {
     const target = evt.target as HTMLElement;
     const targetElement = target.closest('.element');
     if (evt.key === 'Enter' && targetElement.classList.contains('note')) {
@@ -46,58 +58,109 @@ export function makeDraggable(svg: SVGSVGElement) {
     else if (evt.key == 'Enter' || evt.key == 'Escape') {
       (evt.target as HTMLElement).blur();
     }
+    else if (evt.key == 'F2') {
+      const elmentToEdit = this.contentElement.querySelector(':scope g.lastSelection');
+      this.editElementText(elmentToEdit);
+    }
   }
 
-  function startDrag(evt: PointerEvent) {
+  private onPointerDown(evt: PointerEvent) {
     const target = evt.target as SVGElement;
-    selectedElement = target.closest('.element');
 
-    if (selectedElement !== null && selectedElement === lastElementClicked) {
-      const toEdit: HTMLDivElement = selectedElement.querySelector(':scope>foreignObject>div>div');
-      const focusedElement = getElementFromChild(document.activeElement);
-      if (focusedElement !== selectedElement) {
-      setTimeout(function() {
-          toEdit.focus();
-          const range = document.createRange(); // select all text in div
-          range.selectNodeContents(toEdit);
-          const sel = window.getSelection();
-          sel.removeAllRanges();
-          sel.addRange(range);
-        }, 100);
-      }
-      selectedElement = null;
+    this.selectedElement = target.closest('.element');
+    const controlKeyDown = evt.ctrlKey;
+
+    if (this.selectedElement !== null && this.selectedElement === this.lastElementClicked && !controlKeyDown) {
+      this.editElementText(this.selectedElement);
       return;
     }
-    lastElementClicked = selectedElement;
+    this.lastElementClicked = this.selectedElement;
 
-    if (selectedElement != null) {
-      offset = getMousePosition(evt);
-      const [elementOffsetX, elementOffsetY] = getOffsetFromContent(selectedElement);
-      offset.x -= elementOffsetX;
-      offset.y -= elementOffsetY;
+    this.doElementSelection(controlKeyDown);
+
+    if (this.selectedElement != null) {
+      if (target.parentElement.classList.contains('selection')) {
+        // resize
+      }
+      this.startDragMousePosition = this.getMousePosition(evt);
+      const [elementOffsetX, elementOffsetY] = this.getOffsetFromContent(this.selectedElement);
+      this.dragingElementOriginalAbsolotePosition = {x: elementOffsetX, y: elementOffsetY};
     }
     else if (target.classList.contains('RelationshipDetect')) {
-      if (selectedRelation)
-        selectedRelation.classList.remove('selected');
-      if (selectedRelation === (target.parentElement as any as SVGElement))
-        selectedRelation = null;
-      else {
-        selectedRelation = target.parentElement as any as SVGElement;
-        selectedRelation.classList.add('selected');
-        const parent = selectedRelation.ownerSVGElement;
-        parent.appendChild(selectedRelation);
-      }
+      this.doRelationShipSelection(target);
     }
   }
-  function getElementFromChild(element: Element) {
+
+  private doRelationShipSelection(target: SVGElement) {
+    if (this.selectedRelation)
+      this.selectedRelation.classList.remove('selected');
+    if (this.selectedRelation === (target.parentElement as any as SVGElement))
+      this.selectedRelation = null;
+    else {
+      this.selectedRelation = target.parentElement as any as SVGElement;
+      this.selectedRelation.classList.add('selected');
+      const parent = this.selectedRelation.ownerSVGElement;
+      parent.appendChild(this.selectedRelation);
+    }
+  }
+
+  private doElementSelection(controlKeyDown: boolean) {
+    const elementIsAlreadySelected = this.selectedElement && this.selectedElement.classList.contains('selected');
+    this.contentElement.querySelectorAll('g.element>g.selection').forEach(e => {
+      e.parentElement.classList.remove('lastSelection');
+      if (!controlKeyDown || this.selectedElement === (e.parentElement as Element as SVGGElement)) {
+        e.parentElement.classList.remove('selected');
+        e.remove();
+      }
+    });
+    this.contentElement.querySelectorAll('g.con.highlight').forEach(e => {
+      if (!controlKeyDown || this.selectedElement === (e.parentElement as Element as SVGGElement)) {
+        e.classList.remove('highlight');
+      }
+    });
+    if (this.selectedElement && (!controlKeyDown || !elementIsAlreadySelected)) {
+      this.selectedElement.classList.add('lastSelection');
+      this.selectedElement.classList.add('selected');
+      const selectedEntity = this.diagram.GetDiagramObjectById(this.selectedElement.id) as ArchiDiagramChild;
+      const before = this.selectedElement.querySelector(':scope>foreignObject');
+      if (before)
+        this.selectedElement.insertBefore(this.diagramTemplate.getElementSelection(selectedEntity.Bounds.Width, selectedEntity.Bounds.Height), before);
+      else
+        this.selectedElement.appendChild(this.diagramTemplate.getElementSelection(selectedEntity.Bounds.Width, selectedEntity.Bounds.Height));
+      
+      const connectionsToHighlight = this.diagram.DescendantsWithSourceConnections.filter(o => o instanceof ArchiSourceConnection && (o.Source.Id == selectedEntity.Id || o.TargetId == selectedEntity.Id)) as ArchiSourceConnection[];
+      connectionsToHighlight.forEach(c => {
+        const lineG = this.selectedElement.ownerDocument.getElementById(c.Id);
+        lineG.classList.add('highlight');
+      });
+    }
+  }
+
+  private editElementText(element: Element) {
+    const toEdit: HTMLDivElement = element.querySelector(':scope>foreignObject>div>div');
+    const focusedElement = this.getElementFromChild(document.activeElement);
+    if (focusedElement !== element) {
+      setTimeout(function () {
+        toEdit.focus();
+        const range = document.createRange(); // select all text in div
+        range.selectNodeContents(toEdit);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+      }, 100);
+    }
+    this.selectedElement = null;
+  }
+
+  private getElementFromChild(element: Element) {
     while (element != null && !(element instanceof SVGGElement))
       element = element.parentElement;
     return element;
   }
-  function getOffsetFromContent(element: SVGGElement): [number, number] {
+  private getOffsetFromContent(element: SVGGElement): [number, number] {
     let elementOffsetX = 0;
     let elementOffsetY = 0;
-    while (element !== contentElement) {
+    while (element !== this.contentElement) {
       const transform = element.transform.baseVal.consolidate();
       elementOffsetX += transform.matrix.e;
       elementOffsetY += transform.matrix.f;
@@ -106,80 +169,87 @@ export function makeDraggable(svg: SVGSVGElement) {
     return [elementOffsetX, elementOffsetY];
   }
 
-  function drag(evt: PointerEvent) {
-    if (selectedElement) {
-      lastElementClicked = null;
+  private onPointerMove(evt: PointerEvent) {
+    if (this.selectedElement) {
+      this.lastElementClicked = null;
       if (document.activeElement instanceof HTMLElement)
         document.activeElement.blur();
-      setDraggingAttributes(evt);
+      
+      const coord = this.getMousePosition(evt);
+
+      const isDragging = this.selectedElement.classList.contains('dragging');
+      let startDragging = false;
+      if (!isDragging) {
+        const distanceFromStart = Math.sqrt(Math.pow(coord.x - this.startDragMousePosition.x, 2) + Math.pow(coord.y - this.startDragMousePosition.y, 2));
+        if (distanceFromStart >= 5)
+          startDragging = true;
+      }
+      if (startDragging || isDragging)
+        this.setDraggingAttributes(coord);
     }
   }
 
-  function setDraggingAttributes(evt: PointerEvent) {
-    const coord = getMousePosition(evt);
-
-    if (selectedElement !== contentElement.lastElementChild) {
-      selectedElement.remove();
-      contentElement.appendChild(selectedElement);
+  private setDraggingAttributes(coord: {x: number, y: number}) {
+    if (this.selectedElement !== this.contentElement.lastElementChild) {
+      this.selectedElement.remove();
+      this.contentElement.appendChild(this.selectedElement);
     }
-    if (!selectedElement.classList.contains('dragging')) {
-      selectedElement.classList.add('dragging');
-      svg.classList.add('dragging');
+    if (!this.selectedElement.classList.contains('dragging')) {
+      this.selectedElement.classList.add('dragging');
+      this.svg.classList.add('dragging');
     }
 
+    const newX = coord.x - this.startDragMousePosition.x + this.dragingElementOriginalAbsolotePosition.x; 
+    const newY = coord.y - this.startDragMousePosition.y + this.dragingElementOriginalAbsolotePosition.y; 
+    this.selectedElement.setAttributeNS(null, 'transform', `translate(${Math.round(newX / 12) * 12}, ${Math.round(newY / 12) * 12})`);
 
-    selectedElement.setAttributeNS(null, 'transform', `translate(${Math.round((coord.x - offset.x) / 12) * 12}, ${Math.round((coord.y - offset.y) / 12) * 12})`);
-
-    const dropTargetCandidates = svg.querySelectorAll('g.element:hover');
+    const dropTargetCandidates = this.svg.querySelectorAll('g.element:hover');
     const dropTargetCandidate = !dropTargetCandidates ? null : dropTargetCandidates[dropTargetCandidates.length - 1] as SVGGElement;
     if (dropTargetCandidate) {
-      if (selectedDropTarget !== dropTargetCandidate) {
-        if (selectedDropTarget) {
-          selectedDropTarget.classList.remove('drop');
+      if (this.selectedDropTarget !== dropTargetCandidate) {
+        if (this.selectedDropTarget) {
+          this.selectedDropTarget.classList.remove('drop');
         }
-        selectedDropTarget = dropTargetCandidate;
-        selectedDropTarget.classList.add('drop');
+        this.selectedDropTarget = dropTargetCandidate;
+        this.selectedDropTarget.classList.add('drop');
       }
     } else {
-      if (selectedDropTarget) {
-        selectedDropTarget.classList.remove('drop');
-        selectedDropTarget = null;
+      if (this.selectedDropTarget) {
+        this.selectedDropTarget.classList.remove('drop');
+        this.selectedDropTarget = null;
       }
     }
   }
 
-  function endDrag(evt: PointerEvent) {
-    if (selectedElement && selectedElement.classList.contains('dragging')) {
-      if (selectedDropTarget) {
-        const [elementOffsetX, elementOffsetY] = getOffsetFromContent(selectedElement);
-        const [parentOffsetX, parentOffsetY] = getOffsetFromContent(selectedDropTarget);
-        selectedDropTarget.appendChild(selectedElement);
-        selectedElement.setAttributeNS(null, 'transform', `translate(${elementOffsetX - parentOffsetX}, ${elementOffsetY - parentOffsetY})`);
+  private onPointerUp(evt: PointerEvent) {
+    const controlKeyDown = evt.ctrlKey;
+    if (this.selectedElement && this.selectedElement.classList.contains('dragging')) {
+      if (this.selectedDropTarget) {
+        const [elementOffsetX, elementOffsetY] = this.getOffsetFromContent(this.selectedElement);
+        const [parentOffsetX, parentOffsetY] = this.getOffsetFromContent(this.selectedDropTarget);
+        this.selectedDropTarget.appendChild(this.selectedElement);
+        this.selectedElement.setAttributeNS(null, 'transform', `translate(${elementOffsetX - parentOffsetX}, ${elementOffsetY - parentOffsetY})`);
       } else {
-        const firstConnector = contentElement.querySelector(':scope>.con');
+        const firstConnector = this.contentElement.querySelector(':scope>.con');
         if (firstConnector)
-          contentElement.insertBefore(selectedElement, firstConnector);
+          this.contentElement.insertBefore(this.selectedElement, firstConnector);
         else
-          contentElement.appendChild(selectedElement);
+          this.contentElement.appendChild(this.selectedElement);
       }
-      selectedElement.classList.remove('dragging');
-      svg.classList.remove('dragging');
-    } else if (selectedElement) {
-      selectedElement.classList.add('selected');
+      this.selectedElement.classList.remove('dragging');
+      this.svg.classList.remove('dragging');
     }
-    if (selectedDropTarget) {
-      selectedDropTarget.classList.remove('drop');
+    if (this.selectedDropTarget) {
+      this.selectedDropTarget.classList.remove('drop');
     }
-    selectedDropTarget = null;
-    selectedElement = null;
+    this.selectedDropTarget = null;
+    this.selectedElement = null;
   }
-  function getMousePosition(evt: PointerEvent) {
-    const CTM = svg.getScreenCTM();
+  private getMousePosition(evt: PointerEvent) {
+    const CTM = this.svg.getScreenCTM();
     return {
       x: (evt.clientX - CTM.e) / CTM.a,
       y: (evt.clientY - CTM.f) / CTM.d,
-      f: CTM.f,
-      d: CTM.d
     };
   }
 }

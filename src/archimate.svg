@@ -255,6 +255,10 @@
       stroke: #5555;
     }
 
+    g.con.highlight path.RelationshipDetect {
+      stroke: #44a5;
+    }
+
     g.con.selected path.RelationshipDetect {
       stroke: #44a5;
     }
@@ -1022,6 +1026,24 @@
       </foreignObject>
     </g>
 
+    <g id="ElementWithChild" transform="translate(372, 528)" class="undefined element">
+      <rect width="168" height="60" />
+      <use xlink:href="#ExperimentIcon" x="168" y="0" />
+      <foreignObject width="168px" height="60px">
+        <div xmlns="http://www.w3.org/1999/xhtml" style="width: 168px; height: 60px">
+          <div>Parent</div>
+        </div>
+      </foreignObject>
+      <g id="ElementWithChild" transform="translate(12, 20)" class="undefined element">
+        <rect width="84" height="32" />
+        <foreignObject width="84px" height="32px">
+          <div xmlns="http://www.w3.org/1999/xhtml" style="width: 84px; height: 32px">
+            <div>Child</div>
+          </div>
+        </foreignObject>
+      </g>
+    </g>
+
     <g id="ElementLastSelected" transform="translate(192, 528)" class="undefined element selected lastSelection">
       <rect width="168" height="60" />
       <use xlink:href="#ExperimentIcon" x="168" y="0" />
@@ -1106,7 +1128,15 @@
         <circle cx="200" cy="240" r="3"></circle>
         <circle cx="100" cy="240" r="2"></circle>
       </g>
-
+      <g class="con highlight">
+        <path d="M 0 255 L 200 255 " class="Assignment Relationship"></path>
+        <path d="M 0 255 L 200 255 " class="RelationshipDetect"></path>
+        <foreignObject x="20" y="235" width="160px" height="40px">
+          <div xmlns="http://www.w3.org/1999/xhtml">
+            <div>Highlight</div>
+          </div>
+        </foreignObject>
+      </g>
     </g>
   </g>
 </svg>
