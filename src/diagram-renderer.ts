@@ -213,7 +213,8 @@ export class DiagramRenderer {
     const editPointGroup = group.ownerDocument.createElementNS(group.namespaceURI, 'g');
     editPointGroup.setAttribute('id', sourceConnection.Id);
     editPointGroup.setAttribute('class', 'con');
-    editPointGroup.setAttribute('data-rel', relationEntity.Id);
+    if (relationEntity)
+      editPointGroup.setAttribute('data-rel', relationEntity.Id);
 
     group.appendChild(editPointGroup);
     return editPointGroup;
