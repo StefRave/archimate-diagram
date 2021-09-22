@@ -47,6 +47,8 @@ export class ArchimateProjectStorage {
         let type = e.getAttribute('xsi:type');
         if (type.startsWith('archimate:'))
             type = type.substring(10);
+        if (type.startsWith('canvas:'))
+            type = type.substring(7);
 
         let o: ArchiEntity;
 
@@ -57,6 +59,8 @@ export class ArchimateProjectStorage {
             o = r;
         }
         else if (type === 'ArchimateDiagramModel')
+            o = new ArchiDiagram();
+        else if (type === 'CanvasModel')
             o = new ArchiDiagram();
         else
             o = new ArchiEntity();
@@ -106,6 +110,15 @@ export class ArchimateProject {
     public GetRelatedElementForTarget = (id: string, relaType?: string, type?: string) => this.GetTargetRelationShips(id, relaType).map(r => this.GetById(r.Source)).filter(r => !type || type == r.EntityType);
     public GetRelatedElementForSource = (id: string, relaType?: string, type?: string) => this.GetSourceRelationShips(id, relaType).map(r => this.GetById(r.Target)).filter(r => !type || type == r.EntityType);
     public GetDiagramsWithElementId = (id: string) => this.Diagrams.filter(e => e.GetElementIds().some(de => de === id));
+
+    public GetUnused(): ArchiEntity[]{
+      const usedIds = this.Diagrams.flatMap(d => d.DescendantsWithSourceConnections)
+        .map(o => (<ArchiDiagramChild>o).ElementId ?? (<ArchiSourceConnection>o).RelationShipId).filter(o => o)
+        .concat(this.Diagrams.map(d => d.Id));
+      const usedIdsSet = new Set(usedIds);
+      const unusedEntities = this.Entities.filter(e => !usedIdsSet.has(e.Id));
+      return unusedEntities;
+    }
 }
 
 export class ArchiEntity {

@@ -3,9 +3,10 @@ import { ArchimateProjectStorage, ArchimateProject, ArchiDiagram } from './greet
 import { DiagramRenderer, DiagramTemplate } from './diagram-renderer';
 import { DiagramEditor } from './diagram-editor';
 
-(window as any).my = {
+const my: any = (window as any).my = {
   uploadFile: uploadFile,
   onSelectView: changeView,
+  save: save,
 };
 
 
@@ -25,6 +26,20 @@ export async function changeView(viewId: string) {
   const project: ArchimateProject = (window as any).my.project;
   const diagram = project.Diagrams.filter(d => d.Id === viewId)[0] ?? project.Diagrams[0];
   displayDiagram(project, diagram);
+}
+
+function save() {
+  const file = new Blob([new XMLSerializer().serializeToString(my.project.Element.ownerDocument)], {type: "text/xml;charset=utf-8"});
+  const a = document.createElement("a"),
+  url = URL.createObjectURL(file);
+  a.href = url;
+  a.download = "test.xml";
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(function() {
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);  
+  }, 0); 
 }
 
 async function activateLoadedProject(project: ArchimateProject, diagram: ArchiDiagram) {

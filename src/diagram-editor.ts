@@ -131,7 +131,8 @@ export class DiagramEditor {
       const connectionsToHighlight = this.diagram.DescendantsWithSourceConnections.filter(o => o instanceof ArchiSourceConnection && (o.Source.Id == selectedEntity.Id || o.TargetId == selectedEntity.Id)) as ArchiSourceConnection[];
       connectionsToHighlight.forEach(c => {
         const lineG = this.selectedElement.ownerDocument.getElementById(c.Id);
-        lineG.classList.add('highlight');
+        if (lineG)
+          lineG.classList.add('highlight');
       });
     }
   }
