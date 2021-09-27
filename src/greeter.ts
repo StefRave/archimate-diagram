@@ -1,5 +1,6 @@
 import './diagram-renderer';
 import JSZip from 'jszip';
+import Sequence, {asSequence} from 'sequency';
 
 export class ArchimateProjectStorage {
     public static async GetDefaultProject(): Promise<ArchimateProject> {
@@ -54,8 +55,8 @@ export class ArchimateProjectStorage {
 
         if (type.endsWith('Relationship')) {
             const r = new Relationship;
-            r.Source = e.getAttribute('source') ?? archiId(e.getElementsByTagName('source')[0]);
-            r.Target = e.getAttribute('target') ?? archiId(e.getElementsByTagName('target')[0]);
+            r.source = e.getAttribute('source') ?? archiId(e.getElementsByTagName('source')[0]);
+            r.target = e.getAttribute('target') ?? archiId(e.getElementsByTagName('target')[0]);
             o = r;
         }
         else if (type === 'ArchimateDiagramModel')
@@ -65,74 +66,81 @@ export class ArchimateProjectStorage {
         else
             o = new ArchiEntity();
 
-        o.EntityType = type;
+        o.entityType = type;
         // o.FilePath = path;
         o.Id = e.getAttribute('id');
-        o.Name = e.getAttribute('name');
-        o.Documentation = e.getAttribute('documentation') ?? e.getElementsByTagName('documentation')[0]?.textContent;
-        o.Element = e;
+        o.name = e.getAttribute('name');
+        o.documentation = e.getAttribute('documentation') ?? e.getElementsByTagName('documentation')[0]?.textContent;
+        o.element = e;
 
         return o;
     }
 }
 
 export class ArchimateProject {
-    private entities: ArchiEntity[];
-    public Element: Element;
-    public Name: string;
-    public Id: string;
-    public Version: string;
+    public element: Element;
+    public name: string;
+    public id: string;
+    public version: string;
 
-    private readonly byId: Map<string, ArchiEntity>;
-    private readonly relationships: Relationship[];
+    private readonly entitiesById: Map<string, ArchiEntity>;
+    private readonly relationshipsById: Map<string, Relationship>;
 
     constructor(entities: ArchiEntity[], element: Element) {
-        this.Element = element;
-        this.Name = element.getAttribute('name');
-        this.Version = element.getAttribute('version');
-        this.Id = element.getAttribute('id');
-        this.entities = entities;
-        this.byId = new Map<string, ArchiEntity>();
-        entities.forEach(o => this.byId.set(o.Id, o));
-        this.relationships = entities.filter(o => o instanceof Relationship).map(o => <Relationship>o);
+        this.element = element;
+        this.name = element.getAttribute('name');
+        this.version = element.getAttribute('version');
+        this.id = element.getAttribute('id');
+        this.entitiesById = new Map<string, ArchiEntity>();
+        entities.forEach(o => this.entitiesById.set(o.Id, o));
+        this.relationshipsById = new Map<string, Relationship>();
+        entities.filter(o => o instanceof Relationship).forEach(o => this.entitiesById.set(o.Id, o));
     }
 
-    public GetById = (id: string) => this.byId.get(id);
+    public getById = (id: string) => this.entitiesById.get(id);
 
-    public get Entities(): ArchiEntity[] {
-        return this.entities;
+    public get diagrams(): ArchiDiagram[] {
+      return asSequence(this.entitiesById.values()).filter(o => o instanceof ArchiDiagram).map(o => <ArchiDiagram>o).toArray();
     }
-    public get Diagrams(): ArchiDiagram[] {
-        return this.entities.filter(o => o instanceof ArchiDiagram).map(o => <ArchiDiagram>o);
+    private get relationships(): Sequence<Relationship> {
+      return asSequence(this.relationshipsById.values());
     }
-    public GetTargetRelationShips = (id: string, relaType?: string) => this.relationships.filter(r => r.Target === id && (!relaType || relaType == r.EntityType));
-    public GetSourceRelationShips = (id: string, relaType?: string) => this.relationships.filter(r => r.Source === id && (!relaType || relaType == r.EntityType));
-    public GetRelatedElementForTarget = (id: string, relaType?: string, type?: string) => this.GetTargetRelationShips(id, relaType).map(r => this.GetById(r.Source)).filter(r => !type || type == r.EntityType);
-    public GetRelatedElementForSource = (id: string, relaType?: string, type?: string) => this.GetSourceRelationShips(id, relaType).map(r => this.GetById(r.Target)).filter(r => !type || type == r.EntityType);
-    public GetDiagramsWithElementId = (id: string) => this.Diagrams.filter(e => e.GetElementIds().some(de => de === id));
 
-    public GetUnused(): ArchiEntity[]{
-      const usedIds = this.Diagrams.flatMap(d => d.DescendantsWithSourceConnections)
+    public getTargetRelationShips = (id: string, relaType?: string) => this.relationships.filter(r => r.target === id && (!relaType || relaType == r.entityType));
+    public getSourceRelationShips = (id: string, relaType?: string) => this.relationships.filter(r => r.source === id && (!relaType || relaType == r.entityType));
+    public getRelatedElementForTarget = (id: string, relaType?: string, type?: string) => this.getTargetRelationShips(id, relaType).map(r => this.getById(r.source)).filter(r => !type || type == r.entityType);
+    public getRelatedElementForSource = (id: string, relaType?: string, type?: string) => this.getSourceRelationShips(id, relaType).map(r => this.getById(r.target)).filter(r => !type || type == r.entityType);
+    public getDiagramsWithElementId = (id: string) => this.diagrams.filter(e => e.GetElementIds().some(de => de === id));
+
+    public getUnused(): ArchiEntity[] {
+      const usedIds = this.diagrams.flatMap(d => d.DescendantsWithSourceConnections)
         .map(o => (<ArchiDiagramChild>o).ElementId ?? (<ArchiSourceConnection>o).RelationShipId).filter(o => o)
-        .concat(this.Diagrams.map(d => d.Id));
+        .concat(this.diagrams.map(d => d.Id));
       const usedIdsSet = new Set(usedIds);
-      const unusedEntities = this.Entities.filter(e => !usedIdsSet.has(e.Id));
-      return unusedEntities;
+      const unusedEntities = asSequence(this.entitiesById.values()).filter(e => !usedIdsSet.has(e.Id));
+      return unusedEntities.toArray();
+    }
+
+    public removeEntity(entity: ArchiEntity) {
+      this.entitiesById.delete(entity.Id);
+      if (entity instanceof Relationship)
+        this.relationshipsById.delete(entity.Id);
+      entity.element.remove();
     }
 }
 
 export class ArchiEntity {
-    public EntityType: string;
-    public FilePath: string;
-    public Name: string;
+    public entityType: string;
+    public filePath: string;
+    public name: string;
     public Id: string;
-    public Documentation: string;
-    public Element: Element;
+    public documentation: string;
+    public element: Element;
 }
 
 export class Relationship extends ArchiEntity {
-    public Source: string;
-    public Target: string;
+    public source: string;
+    public target: string;
 }
 
 export class ArchiDiagram extends ArchiEntity {
@@ -153,7 +161,7 @@ export class ArchiDiagram extends ArchiEntity {
 
     public get Children(): ArchiDiagramChild[] {
         if (this.children == null) {
-            this.children = Array.from(this.Element.children)
+            this.children = Array.from(this.element.children)
                 .filter(n => n.nodeName == 'children' || n.nodeName == 'child')
                 .map(c => new ArchiDiagramChild(c));
         }

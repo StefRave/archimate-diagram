@@ -45,26 +45,26 @@ export class DiagramRenderer {
   }
 
   private addElement(child: ArchiDiagramChild, parent: Element) {
-    let archiElement = this.project.GetById(child.ElementId);
+    let archiElement = this.project.getById(child.ElementId);
     if (archiElement == null) {
       archiElement = new ArchiEntity();
-      archiElement.EntityType = child.EntityType;
-      archiElement.Name = child.Element.getAttribute('name');
-      if (archiElement.EntityType === 'Note') {
-        let textContent = Array.from(child.Element.childNodes).filter(n => n.nodeName === 'content')[0]?.textContent;
+      archiElement.entityType = child.EntityType;
+      archiElement.name = child.Element.getAttribute('name');
+      if (archiElement.entityType === 'Note') {
+        let textContent = Array.from(child.Element.childNodes).filter(n => n.nodeName === 'content')[0]?.textContent ?? "";
         textContent = textContent
           .replace(/\uf0b7|\uf0a7/g, '•') // TODO: wingdings to unicode: http://www.alanwood.net/demos/wingdings.html
           .replace(/\r/g, '');
-        archiElement.Name = textContent;
+        archiElement.name = textContent;
       }
-      archiElement.Documentation = child.Element.getAttribute('documentation');
+      archiElement.documentation = child.Element.getAttribute('documentation');
     }
-    let es = this.modelTemplate.getElementByType(archiElement.EntityType)?.outerHTML;
-    if (es == null && (archiElement.EntityType.startsWith('Technology') || archiElement.EntityType.startsWith('Application'))) {
-      es = this.modelTemplate.getElementByType(archiElement.EntityType.replace(/Technology|Application/, 'Business'))?.outerHTML;
-      if (es != null && archiElement.EntityType.startsWith('Technology'))
+    let es = this.modelTemplate.getElementByType(archiElement.entityType)?.outerHTML;
+    if (es == null && (archiElement.entityType.startsWith('Technology') || archiElement.entityType.startsWith('Application'))) {
+      es = this.modelTemplate.getElementByType(archiElement.entityType.replace(/Technology|Application/, 'Business'))?.outerHTML;
+      if (es != null && archiElement.entityType.startsWith('Technology'))
         es = es.replace('business', 'technology');
-      else if (es != null && archiElement.EntityType.startsWith('Application'))
+      else if (es != null && archiElement.entityType.startsWith('Application'))
         es = es.replace('business', 'application');
     }
     if (!es)
@@ -80,10 +80,10 @@ export class DiagramRenderer {
     es = es.replace(/(?<!\d)160(?!\d)/g, `${Width - 8}`);
     es = es.replace(/(?<!\d)60(?!\d)/g, `${Height}`);
     es = es.replace(/(?<!\d)84(?!\d)/g, `${Width / 2}`);
-    if (archiElement.EntityType === 'Grouping' || archiElement.EntityType === 'Group')
+    if (archiElement.entityType === 'Grouping' || archiElement.entityType === 'Group')
       es = es.replace(/(?<!\d)156(?!\d)/g, `${Width - 12}`);
-    if (archiElement.EntityType === 'Junction') {
-      if (archiElement.Element.getAttribute('type') === 'or')
+    if (archiElement.entityType === 'Junction') {
+      if (archiElement.element.getAttribute('type') === 'or')
         es = es.replace('class=\'', 'class=\'or ');
 
       const ws = +(Width / 2).toFixed(2);
@@ -96,25 +96,25 @@ export class DiagramRenderer {
     e.setAttribute('id', child.Id.toString());
     const div = e.querySelector('foreignObject>div>div');
     if (div != null) {
-      div.textContent = archiElement.Name;
+      div.textContent = archiElement.name;
       div.setAttribute('contenteditable', 'true');
 
       if (!e.classList.contains('group') && !e.classList.contains('note')) {
         const d = e.ownerDocument.createElementNS(div.namespaceURI, 'div');
-        d.textContent = archiElement.EntityType;
+        d.textContent = archiElement.entityType;
         d.setAttribute('class', 'elementType');
         div.parentNode.appendChild(d);
       }
     }
-    if (archiElement.Documentation) {
+    if (archiElement.documentation) {
       const d = e.ownerDocument.createElementNS(e.namespaceURI, 'title');
-      d.textContent = archiElement.Documentation;
+      d.textContent = archiElement.documentation;
       e.insertBefore(d, e.firstChild);
     }
 
     let style = '';
     if (child.FillColor)
-      style += 'fill: ' + child.FillColor + ' '; 5
+      style += 'fill: ' + child.FillColor + ' ';
     if (style !== '') {
       const toStyle = Array.from(e.children)
         .filter(n => n.nodeName == 'rect' || n.nodeName == 'path');
@@ -143,7 +143,7 @@ export class DiagramRenderer {
           const [start, startBounds] = getPositionAndBounds(sourceConnection.Source);
           const coords = DiagramRenderer.calculateConnectionCoords(start, startBounds, end, endBounds, sourceConnection);
           if (coords.length > 1) {
-            const relationEntity = this.project.GetById(sourceConnection.RelationShipId);
+            const relationEntity = this.project.getById(sourceConnection.RelationShipId);
             DiagramRenderer.addRelation(this.svgContent, coords, sourceConnection, relationEntity, sourceConnectionMiddlePoints);
           }
         }
@@ -221,11 +221,11 @@ export class DiagramRenderer {
   }
 
   static addConnectionPath(group: Element, relationEntity: ArchiEntity, d: string, sourceConnection: ArchiSourceConnection) {
-    const relationShipType = relationEntity?.EntityType;
+    const relationShipType = relationEntity?.entityType;
     let cssClass: string = relationShipType?.replace('Relationship', ' Relationship') ?? 'Relationship';
     if (relationShipType === 'AccessRelationShip') {
       let accessClass: string;
-      switch (relationEntity.Element.getAttribute('accessType')) {
+      switch (relationEntity.element.getAttribute('accessType')) {
         case '1': accessClass = 'Read'; break;
         case '2': accessClass = 'Access'; break;
         case '3': accessClass = 'Read Write'; break;

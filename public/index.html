@@ -14,7 +14,14 @@
     <input id="fileUpload" type="file" name="fileUpload" />
     <button id="uploadNutton" onclick="my.uploadFile()">View</button>
     <select name="views" id="projectView" onchange="my.onSelectView(projectView.value)"></select>
-    <div id="svgTarget">
+    <div class="grid">
+      <div id="leftThing" class="split split-horizontal" >
+        <ul id="diagramTree">
+        </ul>
+      </div>
+      <div class="vertical-gutter"></div>
+      <div id="svgTarget" class="split split-horizontal">
+      </div>
     </div>
 </body>
 </html>
