@@ -33,7 +33,6 @@
     "webpack-merge": "^5.8.0"
   },
   "dependencies": {
-    "htm": "^3.1.0",
     "jszip": "^3.6.0",
     "preact": "^10.5.14",
     "sequency": "^0.19.2",

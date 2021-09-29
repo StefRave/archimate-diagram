@@ -35,7 +35,7 @@ module.exports = function () {
 
   const commonConfig = {
     context: path.resolve(__dirname, 'src'),
-    entry: './index.ts',
+    entry: './index.tsx',
     output: {
       filename: '[name].bundle.js',
       path: path.resolve(__dirname, 'dist'),

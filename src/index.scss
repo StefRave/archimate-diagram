@@ -58,9 +58,16 @@ ul {
   font-size: 12px;
 }
 
-#myUL {
-  margin: 0;
-  padding: 0;
+#diagramTree li:hover {
+  background-color: #ddd;
+}
+
+#diagramTree li.active {
+  background-color: #ccf;
+}
+
+#diagramTree li:hover ul {
+  background-color: #fff;
 }
 
 .caret {

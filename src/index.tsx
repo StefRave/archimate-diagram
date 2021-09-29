@@ -4,7 +4,6 @@ import { ArchiDiagram, ArchimateProject, ArchimateProjectStorage } from './greet
 import './index.scss';
 import Split from 'split-grid'
 import { render, Component, VNode, h, ComponentChild } from 'preact';
-import { html } from 'htm/preact';
 
 const my: any = (window as any).my = {
   uploadFile: uploadFile,
@@ -32,7 +31,7 @@ async function onDocumentLoad() {
 }
 
 export async function changeView(viewId: string) {
-  const project: ArchimateProject = (window as any).my.project;
+  const project: ArchimateProject = my.project;
   const diagram = project.diagrams.filter(d => d.Id === viewId)[0] ?? project.diagrams[0];
   displayDiagram(project, diagram);
 }
@@ -54,15 +53,17 @@ function save() {
 
 type ArchiEntityTreeProps = {
   views: Element;
+  active: string;
 }
 class ArchiEntityTree extends Component<ArchiEntityTreeProps> {
   constructor(props: ArchiEntityTreeProps) {
     super(props);
   }
 
-  toggle(obj:any):void {
-    obj.target.parentElement.querySelector(".nested").classList.toggle("active");
-    obj.target.classList.toggle('caret-down');
+  toggleFolder(evt: MouseEvent): void {
+    const target = evt.target as HTMLElement;
+    target.parentElement.querySelector(".nested").classList.toggle("active");
+    target.classList.toggle('caret-down');
   }
 
   render():ComponentChild {
@@ -70,38 +71,39 @@ class ArchiEntityTree extends Component<ArchiEntityTreeProps> {
   }
 
   renderFolder(folder: Element): VNode {
-    return html`<li><span onClick=${(o:any) => this.toggle(o)} class="caret"> ${folder.getAttribute('name')}</span><ul class="nested">${
-      this.renderChildren(Array.from(folder.children))
-    }</ul></li>`;
+    return <li><span onClick={this.toggleFolder} class="caret">{folder.getAttribute('name')}</span>
+      <ul class="nested">{this.renderChildren(Array.from(folder.children))}</ul>
+      </li>;
   }
 
   renderChildren(children: Element[]) {
     return children.map(el => el.nodeName == 'folder' ? this.renderFolder(el) : this.renderDiagramElement(el));
   }
-  renderDiagramElement(element: Element): VNode {
-    return html`<li>${element.getAttribute('name')}</li>`;
+
+  private makeActive(evt: MouseEvent): void {
+    const target = evt.target as HTMLElement;
+    const diagramId = target.getAttribute('data-id');
+    if (!diagramId)
+      return;
+    this.base.parentElement.querySelector('li.active')?.classList?.remove('active');
+    target.classList.toggle('active');
+    this.props.active = diagramId;
+    (window as any).my.onSelectView(diagramId);
   }
 
+  renderDiagramElement(element: Element): VNode {
+    const diagramId:string = element.getAttribute('id');
+    const classActive = (diagramId == this.props.active) ? 'active' : '';
+    return <li data-id={diagramId} class={classActive} onClick={(e) => this.makeActive(e)}>{element.getAttribute('name')}</li>;
+  }
 }
 
 async function activateLoadedProject(project: ArchimateProject, diagram: ArchiDiagram) {
-  (window as any).my.project = project;
+  my.project = project;
 
-  const projectView = <HTMLSelectElement>document.getElementById('projectView');
-  projectView.innerHTML = '';
-  project.diagrams.forEach(d => {
-    const newOption = document.createElement('option');
-    newOption.text = d.name;
-    newOption.value = d.Id;
-    newOption.selected = d === diagram;
-    projectView.add(newOption);
-  });
-
-  const leftThing = <HTMLDivElement>document.getElementById('diagramTree');
+  const leftThing = document.getElementById('diagramTree') as HTMLDivElement;
   const views = project.element.querySelector('folder[name="Views"]');
-
-  const App = h(ArchiEntityTree, {views: views});
-  render(App, leftThing);
+  render(<ArchiEntityTree views={views} active={diagram.Id}/>, leftThing, leftThing);
 
   displayDiagram(project, diagram);
 }
@@ -117,11 +119,11 @@ async function displayDiagram(project: ArchimateProject, diagram: ArchiDiagram) 
 }
 
 async function uploadFile() {
-  const fileupload = <HTMLInputElement>document.getElementById('fileUpload');
+  const fileupload = document.getElementById('fileUpload') as HTMLInputElement;
   const reader = new FileReader();
   reader.readAsArrayBuffer(fileupload.files[0]);
   reader.onload = async function () {
-    const project = await ArchimateProjectStorage.GetProjectFromArrayBuffer(<ArrayBuffer>reader.result);
+    const project = await ArchimateProjectStorage.GetProjectFromArrayBuffer(reader.result as ArrayBuffer);
     activateLoadedProject(project, project.diagrams[0]);
   };
   reader.onerror = function () {
