@@ -1,13 +1,12 @@
 import './diagram-renderer';
 import JSZip from 'jszip';
 import Sequence, {asSequence} from 'sequency';
-
+import archisuranceSource from './Archisurance.archimate'
 export class ArchimateProjectStorage {
     public static async GetDefaultProject(): Promise<ArchimateProject> {
-        const archisuranceSource = require('./Archisurance.archimate');
-        const enc = new TextEncoder();
-
-        return ArchimateProjectStorage.GetProjectFromArrayBuffer(enc.encode(archisuranceSource));
+        const response = await fetch(archisuranceSource);
+        const data = await response.arrayBuffer();
+        return ArchimateProjectStorage.GetProjectFromArrayBuffer(data);
     }
 
     public static async GetProjectFromArrayBuffer(file: ArrayBuffer): Promise<ArchimateProject> {

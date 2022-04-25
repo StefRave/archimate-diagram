@@ -1,4 +1,5 @@
 import { ArchimateProject, ArchiDiagram, ArchiDiagramChild, ElementPos, ArchiDiagramObject, ArchiEntity, ArchiSourceConnection } from './greeter';
+import svgSource from './archimate.svg?raw';
 
 export class DiagramRenderer {
   private readonly project: ArchimateProject;
@@ -361,7 +362,6 @@ export class DiagramTemplate {
   public static getFromDrawing(): DiagramTemplate {
     const result = new DiagramTemplate();
 
-    const svgSource = require('./archimate.svg');
     const parser = new DOMParser();
 
     result.templateDoc = parser.parseFromString(svgSource, 'application/xml');
