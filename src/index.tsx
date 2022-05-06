@@ -3,11 +3,11 @@ import { DiagramRenderer, DiagramTemplate } from './diagram-renderer';
 import { ArchiDiagram, ArchimateProject, ArchimateProjectStorage } from './greeter';
 import './index.scss';
 import Split from 'split-grid'
-import { render, Component, VNode, h, ComponentChild } from 'preact';
+import { render, h } from 'preact';
+import { ArchiEntityTree } from './ArchiEntityTree';
 
 const my: any = (window as any).my = {
   uploadFile: uploadFile,
-  onSelectView: changeView,
   save: save,
 };
 
@@ -51,59 +51,12 @@ function save() {
   }, 0); 
 }
 
-type ArchiEntityTreeProps = {
-  views: Element;
-  active: string;
-}
-class ArchiEntityTree extends Component<ArchiEntityTreeProps> {
-  constructor(props: ArchiEntityTreeProps) {
-    super(props);
-  }
-
-  toggleFolder(evt: MouseEvent): void {
-    const target = evt.target as HTMLElement;
-    target.parentElement.querySelector(".nested").classList.toggle("active");
-    target.classList.toggle('caret-down');
-  }
-
-  render():ComponentChild {
-    return this.renderChildren(Array.from(this.props.views.children));
-  }
-
-  renderFolder(folder: Element): VNode {
-    return <li><span onClick={this.toggleFolder} class="caret">{folder.getAttribute('name')}</span>
-      <ul class="nested">{this.renderChildren(Array.from(folder.children))}</ul>
-      </li>;
-  }
-
-  renderChildren(children: Element[]) {
-    return children.map(el => el.nodeName == 'folder' ? this.renderFolder(el) : this.renderDiagramElement(el));
-  }
-
-  private makeActive(evt: MouseEvent): void {
-    const target = evt.target as HTMLElement;
-    const diagramId = target.getAttribute('data-id');
-    if (!diagramId)
-      return;
-    this.base.parentElement.querySelector('li.active')?.classList?.remove('active');
-    target.classList.toggle('active');
-    this.props.active = diagramId;
-    (window as any).my.onSelectView(diagramId);
-  }
-
-  renderDiagramElement(element: Element): VNode {
-    const diagramId:string = element.getAttribute('id');
-    const classActive = (diagramId == this.props.active) ? 'active' : '';
-    return <li data-id={diagramId} class={classActive} onClick={(e) => this.makeActive(e)}>{element.getAttribute('name')}</li>;
-  }
-}
-
 async function activateLoadedProject(project: ArchimateProject, diagram: ArchiDiagram) {
   my.project = project;
 
   const leftThing = document.getElementById('diagramTree') as HTMLDivElement;
   const views = project.element.querySelector('folder[name="Views"]');
-  render(<ArchiEntityTree views={views} active={diagram.Id}/>, leftThing, leftThing);
+  render(<ArchiEntityTree views={views} active={diagram.Id} onDiagramSelected={changeView} />, leftThing, leftThing);
 
   displayDiagram(project, diagram);
 }

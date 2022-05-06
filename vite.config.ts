@@ -5,5 +5,8 @@ import preact from '@preact/preset-vite'
 export default defineConfig({
   plugins: [preact()],
   assetsInclude: ['**/*.archimate', '**/*.archimate'],
-  base: ""
+  base: "",
+  server: {
+    port: 4000
+  }
 })
