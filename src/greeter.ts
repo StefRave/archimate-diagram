@@ -66,7 +66,6 @@ export class ArchimateProjectStorage {
             o = new ArchiEntity();
 
         o.entityType = type;
-        // o.FilePath = path;
         o.Id = e.getAttribute('id');
         o.name = e.getAttribute('name');
         o.documentation = e.getAttribute('documentation') ?? e.getElementsByTagName('documentation')[0]?.textContent;
@@ -143,10 +142,15 @@ export class Relationship extends ArchiEntity {
 }
 
 export class ArchiDiagram extends ArchiEntity {
+
     private children: ArchiDiagramChild[]; // cache
     private childById: Map<string, ArchiDiagramObject>;
     
-
+    resetCache() {
+      this.children = null;
+      this.childById = null;
+    }
+    
     public GetElementIds(): string[] {
         return this.Descendants.map(c => c.ElementId);
     }
@@ -162,7 +166,7 @@ export class ArchiDiagram extends ArchiEntity {
         if (this.children == null) {
             this.children = Array.from(this.element.children)
                 .filter(n => n.nodeName == 'children' || n.nodeName == 'child')
-                .map(c => new ArchiDiagramChild(c));
+                .map(c => new ArchiDiagramChild(c, this));
         }
         return this.children;
     }
@@ -210,31 +214,38 @@ export class ArchiDiagramObject {
 }
 
 export class ArchiDiagramChild extends ArchiDiagramObject {
-    private parent: ArchiDiagramChild;
+    private _parent: ArchiDiagramChild;
     private children: ArchiDiagramChild[]; // cache
 
     public EntityType: string;
     public ElementId: string;
-    public Bounds: ElementBounds;
+    private _bounds: ElementBounds;
     public FillColor: string;
 
+    public get parent(): ArchiDiagramChild {
+      return this._parent;
+    }
+
+    resetCache() {
+      this.children = null;
+    }
     public get AbsolutePosition(): ElementPos {
-        const pos = this.parent?.AbsolutePosition ?? ElementPos.Zero;
-        return pos.Add(new ElementPos(this.Bounds.X, this.Bounds.Y));
+        const pos = this._parent?.AbsolutePosition ?? ElementPos.Zero;
+        return pos.Add(new ElementPos(this.bounds.x, this.bounds.y));
     }
 
     public get Children(): ArchiDiagramChild[] {
         if (this.children == null) {
             this.children = Array.from(this.Element.children)
                 .filter(n => n.nodeName == 'children' || n.nodeName == 'child')
-                .map(c => new ArchiDiagramChild(c, this));
+                .map(c => new ArchiDiagramChild(c, this.diagram, this));
         }
         return this.children;
     }
 
-    constructor(child: Element, parent: ArchiDiagramChild = null) {
+    constructor(child: Element, readonly diagram: ArchiDiagram, parent: ArchiDiagramChild = null) {
         super(child);
-        this.parent = parent;
+        this._parent = parent;
         this.EntityType = child.getAttribute('xsi:type');
         if (this.EntityType.startsWith('archimate:'))
             this.EntityType = this.EntityType.substring(10);
@@ -246,12 +257,47 @@ export class ArchiDiagramChild extends ArchiDiagramObject {
         if (this.Id === '3785')
             this.Id.toString();
 
-        this.Bounds = new ElementBounds(
+        this._bounds = new ElementBounds(
             parseFloat(bounds.getAttribute('x') ?? '0'),
             parseFloat(bounds.getAttribute('y') ?? '0'),
             parseFloat(bounds.getAttribute('width') ?? '165'),
             parseFloat(bounds.getAttribute('height') ?? '58'));
         this.FillColor = child.getAttribute('fillColor');
+    }
+
+    changeElementParent(parentElement: ArchiDiagramChild) {
+      if (this.parent)
+        this.parent.resetCache();
+      else
+        this.diagram.resetCache();
+      if (parentElement)
+        parentElement.resetCache();
+      else
+        this.diagram.resetCache();
+        
+      this.Element.remove();
+      this._parent = parentElement;
+      parentElement.Element.appendChild(this.Element);
+    }
+    changeElementParentDiagram(diagram: ArchiDiagram) {
+      this.parent.resetCache();
+      this.Element.remove();
+      this._parent = null;
+      diagram.resetCache();
+      diagram.element.appendChild(this.Element);
+    }
+
+    public get bounds() {
+      return this._bounds;
+    }
+
+    public set bounds(value: ElementBounds) {
+      this._bounds = value;
+      const b = this.Element.getElementsByTagName('bounds')[0];
+          b.setAttribute('x', value.x.toFixed(2));
+          b.setAttribute('y', value.y.toFixed(2));
+          b.setAttribute('width', value.width.toFixed(2));
+          b.setAttribute('height', value.height.toFixed(2));
     }
 }
 
@@ -299,7 +345,8 @@ export class ElementPos {
 }
 
 export class ElementBounds {
-    constructor(public X: number, public Y: number, public Width: number, public Height: number) { }
+
+    constructor(public readonly x: number, public readonly y: number, public readonly width: number, public readonly height: number) {}
 
     public static Zero: ElementBounds = new ElementBounds(0, 0, 0, 0);
 }

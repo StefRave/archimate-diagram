@@ -5,10 +5,10 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "type": "pwa-chrome",
+            "type": "chrome",
             "request": "launch",
             "name": "Open index.html",
-            "url": "http://127.0.0.1:4200/index.html#1",
+            "url": "http://127.0.0.1:4000/index.html#1",
             "webRoot": "${workspaceFolder}/src",
             "sourceMapPathOverrides": {
               "webpack:///./*": "${workspaceFolder}/src/*",

@@ -18,6 +18,7 @@ export class DiagramRenderer {
   }
 
   public buildSvg(): Document {
+    this.svgContent.id = this.diagram.Id;
     this.addElements(this.diagram.Children, this.svgContent);
     this.addRelations();
 
@@ -33,8 +34,8 @@ export class DiagramRenderer {
     this.diagram.Descendants.forEach(e => {
       minX = Math.min(minX, e.AbsolutePosition.X);
       minY = Math.min(minY, e.AbsolutePosition.Y);
-      maxX = Math.max(maxX, e.AbsolutePosition.X + e.Bounds.Width);
-      maxY = Math.max(maxY, e.AbsolutePosition.Y + e.Bounds.Height);
+      maxX = Math.max(maxX, e.AbsolutePosition.X + e.bounds.width);
+      maxY = Math.max(maxY, e.AbsolutePosition.Y + e.bounds.height);
     });
     this.svgDocument.firstElementChild.setAttribute('viewBox', `${(minX - 10).toFixed(0)} ${(minY - 10).toFixed(0)} ${(maxX - minX + 20).toFixed(0)} ${(maxY - minY + 20).toFixed(0)}`);
     this.svgDocument.firstElementChild.setAttribute('width', `${(maxX - minX + 20).toFixed(0)}`);
@@ -71,29 +72,29 @@ export class DiagramRenderer {
     if (!es)
       es = this.modelTemplate.getElementByType('todo').outerHTML;
 
-    const { X, Y, Width, Height } = child.Bounds;
+    const { x, y, width, height } = child.bounds;
     if (child.Id === '3733')
       child.ElementId.toString();
-    es = es.replace(/(?<!\d)168(?!\d)/g, `${Width}`);
-    es = es.replace(/(?<!\d)152(?!\d)/g, `${Width - 16}`);
-    es = es.replace(/(?<!\d)52(?!\d)/g, `${Height - 8}`);
-    es = es.replace(/(?<!\d)44(?!\d)/g, `${Height - 16}`);
-    es = es.replace(/(?<!\d)160(?!\d)/g, `${Width - 8}`);
-    es = es.replace(/(?<!\d)60(?!\d)/g, `${Height}`);
-    es = es.replace(/(?<!\d)84(?!\d)/g, `${Width / 2}`);
+    es = es.replace(/(?<!\d)168(?!\d)/g, `${width}`);
+    es = es.replace(/(?<!\d)152(?!\d)/g, `${width - 16}`);
+    es = es.replace(/(?<!\d)52(?!\d)/g, `${height - 8}`);
+    es = es.replace(/(?<!\d)44(?!\d)/g, `${height - 16}`);
+    es = es.replace(/(?<!\d)160(?!\d)/g, `${width - 8}`);
+    es = es.replace(/(?<!\d)60(?!\d)/g, `${height}`);
+    es = es.replace(/(?<!\d)84(?!\d)/g, `${width / 2}`);
     if (archiElement.entityType === 'Grouping' || archiElement.entityType === 'Group')
-      es = es.replace(/(?<!\d)156(?!\d)/g, `${Width - 12}`);
+      es = es.replace(/(?<!\d)156(?!\d)/g, `${width - 12}`);
     if (archiElement.entityType === 'Junction') {
       if (archiElement.element.getAttribute('type') === 'or')
         es = es.replace('class=\'', 'class=\'or ');
 
-      const ws = +(Width / 2).toFixed(2);
+      const ws = +(width / 2).toFixed(2);
       es = es.replace('cx="5" cy="5" rx="5" ry="5"', `cx='${ws}' cy='${ws}' rx='${ws}' ry='${ws}'`);
     }
     const parser = new DOMParser();
     const e = <Element>parser.parseFromString(es, 'text/xml').firstChild;
 
-    e.setAttribute('transform', `translate(${X}, ${Y})`);
+    e.setAttribute('transform', `translate(${x}, ${y})`);
     e.setAttribute('id', child.Id.toString());
     const div = e.querySelector('foreignObject>div>div');
     if (div != null) {
@@ -155,8 +156,8 @@ export class DiagramRenderer {
 
     function getPositionAndBounds(item: ArchiDiagramObject): [ElementPos, ElementPos] {
       if (item instanceof ArchiDiagramChild) {
-        const pos = item.AbsolutePosition.Add(new ElementPos(item.Bounds.Width / 2, item.Bounds.Height / 2));
-        const bounds = new ElementPos(item.Bounds.Width / 2, item.Bounds.Height / 2);
+        const pos = item.AbsolutePosition.Add(new ElementPos(item.bounds.width / 2, item.bounds.height / 2));
+        const bounds = new ElementPos(item.bounds.width / 2, item.bounds.height / 2);
         return [pos, bounds];
       }
       else {
