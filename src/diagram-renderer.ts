@@ -2,18 +2,12 @@ import { ArchimateProject, ArchiDiagram, ArchiDiagramChild, ElementPos, ArchiDia
 import svgSource from './archimate.svg?raw';
 
 export class DiagramRenderer {
-  private readonly project: ArchimateProject;
-  private readonly diagram: ArchiDiagram;
-  private readonly modelTemplate: DiagramTemplate;
-  private readonly svgDocument: Document;
-  private readonly svgContent: Element;
+  public readonly svgDocument: Document;
+  public readonly svgContent: Element;
 
-  constructor(project: ArchimateProject, diagram: ArchiDiagram, modelTemplate: DiagramTemplate) {
-    this.project = project;
-    this.diagram = diagram;
-    this.modelTemplate = modelTemplate;
+  constructor(public readonly project: ArchimateProject, public readonly diagram: ArchiDiagram, public readonly template: DiagramTemplate) {
 
-    this.svgDocument = this.modelTemplate.getEmptySvg();
+    this.svgDocument = this.template.getEmptySvg();
     this.svgContent = this.svgDocument.getElementById('Content');
   }
 
@@ -29,13 +23,13 @@ export class DiagramRenderer {
 
   private setViewBoxSize() {
     const pos = this.diagram.Descendants[0].AbsolutePosition;
-    let [minX, minY] = [pos.X, pos.Y];
+    let [minX, minY] = [pos.x, pos.y];
     let [maxX, maxY] = [0.0, 0.0];
     this.diagram.Descendants.forEach(e => {
-      minX = Math.min(minX, e.AbsolutePosition.X);
-      minY = Math.min(minY, e.AbsolutePosition.Y);
-      maxX = Math.max(maxX, e.AbsolutePosition.X + e.bounds.width);
-      maxY = Math.max(maxY, e.AbsolutePosition.Y + e.bounds.height);
+      minX = Math.min(minX, e.AbsolutePosition.x);
+      minY = Math.min(minY, e.AbsolutePosition.y);
+      maxX = Math.max(maxX, e.AbsolutePosition.x + e.bounds.width);
+      maxY = Math.max(maxY, e.AbsolutePosition.y + e.bounds.height);
     });
     this.svgDocument.firstElementChild.setAttribute('viewBox', `${(minX - 10).toFixed(0)} ${(minY - 10).toFixed(0)} ${(maxX - minX + 20).toFixed(0)} ${(maxY - minY + 20).toFixed(0)}`);
     this.svgDocument.firstElementChild.setAttribute('width', `${(maxX - minX + 20).toFixed(0)}`);
@@ -61,20 +55,18 @@ export class DiagramRenderer {
       }
       archiElement.documentation = child.Element.getAttribute('documentation');
     }
-    let es = this.modelTemplate.getElementByType(archiElement.entityType)?.outerHTML;
+    let es = this.template.getElementByType(archiElement.entityType)?.outerHTML;
     if (es == null && (archiElement.entityType.startsWith('Technology') || archiElement.entityType.startsWith('Application'))) {
-      es = this.modelTemplate.getElementByType(archiElement.entityType.replace(/Technology|Application/, 'Business'))?.outerHTML;
+      es = this.template.getElementByType(archiElement.entityType.replace(/Technology|Application/, 'Business'))?.outerHTML;
       if (es != null && archiElement.entityType.startsWith('Technology'))
         es = es.replace('business', 'technology');
       else if (es != null && archiElement.entityType.startsWith('Application'))
         es = es.replace('business', 'application');
     }
     if (!es)
-      es = this.modelTemplate.getElementByType('todo').outerHTML;
+      es = this.template.getElementByType('todo').outerHTML;
 
     const { x, y, width, height } = child.bounds;
-    if (child.Id === '3733')
-      child.ElementId.toString();
     es = es.replace(/(?<!\d)168(?!\d)/g, `${width}`);
     es = es.replace(/(?<!\d)152(?!\d)/g, `${width - 16}`);
     es = es.replace(/(?<!\d)52(?!\d)/g, `${height - 8}`);
@@ -128,7 +120,12 @@ export class DiagramRenderer {
     this.addElements(child.Children, e);
   }
 
-  private addRelations() {
+  public clearRelations() {
+    const allConnections = this.svgContent.parentElement.querySelectorAll('g.con');
+    allConnections.forEach(c => c.remove());
+  }
+  
+  public addRelations() {
     let connectionsNext: ArchiSourceConnection[] =
       this.diagram.Descendants.flatMap(child => child.SourceConnections);
     let connections: ArchiSourceConnection[] = [];
@@ -156,7 +153,7 @@ export class DiagramRenderer {
 
     function getPositionAndBounds(item: ArchiDiagramObject): [ElementPos, ElementPos] {
       if (item instanceof ArchiDiagramChild) {
-        const pos = item.AbsolutePosition.Add(new ElementPos(item.bounds.width / 2, item.bounds.height / 2));
+        const pos = item.AbsolutePosition.add(new ElementPos(item.bounds.width / 2, item.bounds.height / 2));
         const bounds = new ElementPos(item.bounds.width / 2, item.bounds.height / 2);
         return [pos, bounds];
       }
@@ -180,23 +177,23 @@ export class DiagramRenderer {
 
     sourceConnectionMiddlePoints.set(sourceConnection.Id,
       coords.length % 2 === 1 ? coords[(coords.length - 1) / 2] :
-        coords[coords.length / 2 - 1].Add(coords[coords.length / 2]).Multiply(0.5));
+        coords[coords.length / 2 - 1].add(coords[coords.length / 2]).multiply(0.5));
   }
 
   static addDragPoints(group: Element, coords: ElementPos[]) {
     for (let i = 0; i < coords.length; i++) {
       const curr = coords[i];
       let circle = group.ownerDocument.createElementNS(group.namespaceURI, 'circle');
-      circle.setAttribute('cx', curr.X.toString());
-      circle.setAttribute('cy', curr.Y.toString());
+      circle.setAttribute('cx', curr.x.toString());
+      circle.setAttribute('cy', curr.y.toString());
       circle.setAttribute('r', '3');
 
       group.appendChild(circle);
       if (i > 0) {
         const prev = coords[i - 1];
         circle = group.ownerDocument.createElementNS(group.namespaceURI, 'circle');
-        circle.setAttribute('cx', ((curr.X + prev.X) / 2).toString());
-        circle.setAttribute('cy', ((curr.Y + prev.Y) / 2).toString());
+        circle.setAttribute('cx', ((curr.x + prev.x) / 2).toString());
+        circle.setAttribute('cy', ((curr.y + prev.y) / 2).toString());
         circle.setAttribute('r', '2');
         group.appendChild(circle);
       }
@@ -253,33 +250,30 @@ export class DiagramRenderer {
 
   static coordsToPathD(coords: ElementPos[]): string {
     let d = '';
-    d += `M ${+coords[0].X.toFixed(2)} ${+coords[0].Y.toFixed(2)} `;
+    d += `M ${+coords[0].x.toFixed(2)} ${+coords[0].y.toFixed(2)} `;
     const cornerRadius = 12;
     for (let i = 1; i < coords.length - 1; i++) {
       let prev = coords[i - 1];
       const curr = coords[i];
       let next = coords[i + 1];
 
-      const length1 = Math.sqrt(Math.pow(curr.X - prev.X, 2) + Math.pow(curr.Y - prev.Y, 2));
-      const length2 = Math.sqrt(Math.pow(curr.X - next.X, 2) + Math.pow(curr.Y - next.Y, 2));
+      const length1 = Math.sqrt(Math.pow(curr.x - prev.x, 2) + Math.pow(curr.y - prev.y, 2));
+      const length2 = Math.sqrt(Math.pow(curr.x - next.x, 2) + Math.pow(curr.y - next.y, 2));
       if (length1 < cornerRadius * 2 || length2 < cornerRadius * 2) {
-        d += `L ${curr.X} ${curr.Y} `;
+        d += `L ${curr.x} ${curr.y} `;
         continue;
       }
-      prev = prev.Add(curr.Subtract(prev).Multiply((length1 - cornerRadius) * (1 / length1)));
-      next = curr.Add(next.Subtract(curr).Multiply(cornerRadius * (1 / length2)));
+      prev = prev.add(curr.subtract(prev).multiply((length1 - cornerRadius) * (1 / length1)));
+      next = curr.add(next.subtract(curr).multiply(cornerRadius * (1 / length2)));
 
-      d += `L ${+prev.X.toFixed(2)} ${+prev.Y.toFixed(2)} Q ${+curr.X.toFixed(2)} ${+curr.Y.toFixed(2)} ${+next.X.toFixed(2)} ${+next.Y.toFixed(2)} `;
+      d += `L ${+prev.x.toFixed(2)} ${+prev.y.toFixed(2)} Q ${+curr.x.toFixed(2)} ${+curr.y.toFixed(2)} ${+next.x.toFixed(2)} ${+next.y.toFixed(2)} `;
     }
-    d += `L ${+coords.slice(-1)[0].X.toFixed(2)} ${+coords.slice(-1)[0].Y.toFixed(2)} `;
+    d += `L ${+coords.slice(-1)[0].x.toFixed(2)} ${+coords.slice(-1)[0].y.toFixed(2)} `;
     return d;
   }
 
   private static calculateConnectionCoords(start: ElementPos, startBounds: ElementPos, end: ElementPos, endBounds: ElementPos, sourceConnection: ArchiSourceConnection) {
-    const bendPoints = sourceConnection.BendPoints.map(bp => start.Add(new ElementPos(bp.X, bp.Y)));
-
-    if (sourceConnection.Id === '3752')
-      sourceConnection.Id.toString();
+    const bendPoints = sourceConnection.BendPoints.map(bp => start.add(new ElementPos(bp.x, bp.y)));
 
     const coords: ElementPos[] = [];
     bendPoints.forEach(nextPoint => {
@@ -291,42 +285,42 @@ export class DiagramRenderer {
     });
     DiagramRenderer.determineStartAndEnd(start, startBounds, end, endBounds);
     coords.push(start);
-    if (start.X !== end.X || start.Y !== end.Y)
+    if (start.x !== end.x || start.y !== end.y)
       coords.push(end);
     return coords;
   }
 
   private static determineStartAndEnd(start: ElementPos, startDev: ElementPos, end: ElementPos, endDev: ElementPos) {
-    if (start.Y - startDev.Y > end.Y + endDev.Y) {
-      start.Y = start.Y - startDev.Y;
-      end.Y = end.Y + endDev.Y;
+    if (start.y - startDev.y > end.y + endDev.y) {
+      start.y = start.y - startDev.y;
+      end.y = end.y + endDev.y;
     }
-    else if (start.Y + startDev.Y < end.Y - endDev.Y) {
-      start.Y = start.Y + startDev.Y;
-      end.Y = end.Y - endDev.Y;
+    else if (start.y + startDev.y < end.y - endDev.y) {
+      start.y = start.y + startDev.y;
+      end.y = end.y - endDev.y;
     }
     else {
-      const minY = Math.max(start.Y - startDev.Y, end.Y - endDev.Y);
-      const maxY = Math.min(start.Y + startDev.Y, end.Y + endDev.Y);
+      const minY = Math.max(start.y - startDev.y, end.y - endDev.y);
+      const maxY = Math.min(start.y + startDev.y, end.y + endDev.y);
       const y = (minY + maxY) / 2;
-      start.Y = y;
-      end.Y = y;
+      start.y = y;
+      end.y = y;
     }
 
-    if (start.X - startDev.X > end.X + endDev.X) {
-      start.X = start.X - startDev.X;
-      end.X = end.X + endDev.X;
+    if (start.x - startDev.x > end.x + endDev.x) {
+      start.x = start.x - startDev.x;
+      end.x = end.x + endDev.x;
     }
-    else if (start.X + startDev.X < end.X - endDev.X) {
-      start.X = start.X + startDev.X;
-      end.X = end.X - endDev.X;
+    else if (start.x + startDev.x < end.x - endDev.x) {
+      start.x = start.x + startDev.x;
+      end.x = end.x - endDev.x;
     }
     else {
-      const minY = Math.max(start.X - startDev.X, end.X - endDev.X);
-      const maxY = Math.min(start.X + startDev.X, end.X + endDev.X);
+      const minY = Math.max(start.x - startDev.x, end.x - endDev.x);
+      const maxY = Math.min(start.x + startDev.x, end.x + endDev.x);
       const x = (minY + maxY) / 2;
-      start.X = x;
-      end.X = x;
+      start.x = x;
+      end.x = x;
     }
   }
 }

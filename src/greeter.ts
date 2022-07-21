@@ -231,7 +231,7 @@ export class ArchiDiagramChild extends ArchiDiagramObject {
     }
     public get AbsolutePosition(): ElementPos {
         const pos = this._parent?.AbsolutePosition ?? ElementPos.Zero;
-        return pos.Add(new ElementPos(this.bounds.x, this.bounds.y));
+        return pos.add(new ElementPos(this.bounds.x, this.bounds.y));
     }
 
     public get Children(): ArchiDiagramChild[] {
@@ -334,14 +334,14 @@ export function archiId(element: Element): string {
 }
 
 export class ElementPos {
-    constructor(public X: number, public Y: number) { }
+    constructor(public x: number, public y: number) { }
 
     public static Zero: ElementPos = new ElementPos(0, 0);
 
-    public Clone = () => new ElementPos(this.X, this.Y);
-    public Add = (b: ElementPos) => new ElementPos(this.X + b.X, this.Y + b.Y);
-    public Subtract = (b: ElementPos) => new ElementPos(this.X - b.X, this.Y - b.Y);
-    public Multiply = (b: number) => new ElementPos(this.X * b, this.Y * b);
+    public clone = () => new ElementPos(this.x, this.y);
+    public add = (b: ElementPos) => new ElementPos(this.x + b.x, this.y + b.y);
+    public subtract = (b: ElementPos) => new ElementPos(this.x - b.x, this.y - b.y);
+    public multiply = (b: number) => new ElementPos(this.x * b, this.y * b);
 }
 
 export class ElementBounds {

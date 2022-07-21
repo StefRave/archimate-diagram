@@ -67,7 +67,7 @@ async function displayDiagram(project: ArchimateProject, diagram: ArchiDiagram) 
   svgTarget.innerHTML = '';
 
   const s = svgTarget.appendChild(svg.firstChild) as SVGSVGElement;
-  const diagramEditor = new DiagramEditor(s, project, diagram, diagramTemplate);
+  const diagramEditor = new DiagramEditor(s, project, diagram, renderer);
   diagramEditor.makeDraggable();
 }
 

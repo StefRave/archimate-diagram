@@ -1,5 +1,5 @@
 import { ArchiDiagram, ArchiDiagramChild, ArchimateProject, ArchiSourceConnection, ElementBounds } from './greeter';
-import { DiagramTemplate } from './diagram-renderer';
+import { DiagramRenderer } from './diagram-renderer';
 
 export class DiagramEditor {
   private readonly contentElement: SVGGElement;
@@ -8,16 +8,16 @@ export class DiagramEditor {
   private lastElementClicked: SVGElement;
   private selectedRelation: SVGElement;
   private selectedDropTarget: SVGGElement;
+  private activeChange: IDiagramChange;
 
-  constructor(private svg: SVGSVGElement, private project: ArchimateProject, private diagram: ArchiDiagram, private diagramTemplate: DiagramTemplate) {
-    this.contentElement = this.svg.querySelector('svg>g') as SVGGElement;
+  constructor(private svg: SVGSVGElement, private project: ArchimateProject, private diagram: ArchiDiagram, private renderer: DiagramRenderer) {
+    this.contentElement = svg.querySelector('svg>g');
   }
 
   public makeDraggable() {
-
     this.svg.addEventListener('pointerdown', (evt) => this.onPointerDown(evt));
     this.svg.addEventListener('pointermove', (evt) => this.onPointerMove(evt));
-    this.svg.addEventListener('pointerup', (evt) => this.onPointerUp(evt));
+    this.svg.addEventListener('pointerup', () => this.onPointerUp());
     // this.svg.addEventListener('pointerleave', (evt) => this.endDrag(evt));
     this.svg.addEventListener('focusout', (evt) => {
       const focusedElement = this.getElementFromChild(evt.target as Element);
@@ -76,7 +76,7 @@ export class DiagramEditor {
     this.lastElementClicked = this.selectedElement;
 
     this.doElementSelection(controlKeyDown);
-
+    
     if (this.selectedElement != null) {
       if (target.parentElement.classList.contains('selection')) {
         // resize
@@ -91,10 +91,10 @@ export class DiagramEditor {
   private doRelationShipSelection(target: SVGElement) {
     if (this.selectedRelation)
       this.selectedRelation.classList.remove('selected');
-    if (this.selectedRelation === (target.parentElement as any as SVGElement))
+    if (this.selectedRelation === (target.parentElement as unknown as SVGElement))
       this.selectedRelation = null;
     else {
-      this.selectedRelation = target.parentElement as any as SVGElement;
+      this.selectedRelation = target.parentElement as unknown as SVGElement;
       this.selectedRelation.classList.add('selected');
       const parent = this.selectedRelation.ownerSVGElement;
       parent.appendChild(this.selectedRelation);
@@ -121,16 +121,9 @@ export class DiagramEditor {
       const selectedEntity = this.diagram.GetDiagramObjectById(this.selectedElement.id) as ArchiDiagramChild;
       const before = this.selectedElement.querySelector(':scope>foreignObject');
       if (before)
-        this.selectedElement.insertBefore(this.diagramTemplate.getElementSelection(selectedEntity.bounds.width, selectedEntity.bounds.height), before);
+        this.selectedElement.insertBefore(this.renderer.template.getElementSelection(selectedEntity.bounds.width, selectedEntity.bounds.height), before);
       else
-        this.selectedElement.appendChild(this.diagramTemplate.getElementSelection(selectedEntity.bounds.width, selectedEntity.bounds.height));
-      
-      const connectionsToHighlight = this.diagram.DescendantsWithSourceConnections.filter(o => o instanceof ArchiSourceConnection && (o.Source.Id == selectedEntity.Id || o.TargetId == selectedEntity.Id)) as ArchiSourceConnection[];
-      connectionsToHighlight.forEach(c => {
-        const lineG = this.selectedElement.ownerDocument.getElementById(c.Id);
-        if (lineG)
-          lineG.classList.add('highlight');
-      });
+        this.selectedElement.appendChild(this.renderer.template.getElementSelection(selectedEntity.bounds.width, selectedEntity.bounds.height));
     }
   }
 
@@ -162,7 +155,7 @@ export class DiagramEditor {
       const transform = element.transform.baseVal.consolidate();
       elementOffsetX += transform.matrix.e;
       elementOffsetY += transform.matrix.f;
-      element = element.parentElement as any as SVGGElement;
+      element = element.parentElement as unknown as SVGGElement;
     }
     return [elementOffsetX, elementOffsetY];
   }
@@ -186,20 +179,48 @@ export class DiagramEditor {
       if (startDragging || isDragging) {
         const diagramElement = this.diagram.GetDiagramObjectById(this.selectedElement.id) as ArchiDiagramChild;
         const absolutePosition = diagramElement.AbsolutePosition;
-        const change =
-        <IDiagramChange>{
-          move: {
-            elementId: this.selectedElement.id,
-            position: { x: absolutePosition.X + delta.x, y: absolutePosition.Y + delta.y} ,
-            parentId: this.diagram.Id
+        const newPosition = { x: Math.round((absolutePosition.x + delta.x) / 12) * 12, y: Math.round((absolutePosition.y + delta.y) / 12) * 12};
+        this.activeChange =
+          <IDiagramChange>{
+            move: {
+              elementId: this.selectedElement.id,
+              position: { x: newPosition.x, y: newPosition.y },
+              parentId: this.diagram.Id
+            }
           }
-        }
-        this.doSvgChange(change);
+        this.doSvgChange(this.activeChange);
         this.setDraggingAttributes();
       }
     }
   }
 
+  private onPointerUp() {
+    if (this.selectedElement && this.selectedElement.classList.contains('dragging')) {
+      // if (this.selectedDropTarget) {
+
+        this.doSvgChange(this.activeChange);
+        this.doDiagramChange(this.activeChange);
+
+        this.renderer.clearRelations();
+        this.renderer.addRelations();
+      // } else {
+      //   const firstConnector = this.contentElement.querySelector(':scope>.con');
+      //   if (firstConnector)
+      //     this.contentElement.insertBefore(this.selectedElement, firstConnector);
+      //   else
+      //     this.contentElement.appendChild(this.selectedElement);
+      // }
+      this.selectedElement.classList.remove('dragging');
+      this.svg.classList.remove('dragging');
+    }
+    if (this.selectedDropTarget) {
+      this.selectedDropTarget.classList.remove('drop');
+    }
+    this.selectedDropTarget = null;
+    this.selectedElement = null;
+    this.activeChange = null;
+  }
+  
   private setDraggingAttributes() {
     if (!this.selectedElement.classList.contains('dragging')) {
       this.selectedElement.classList.add('dragging');
@@ -233,9 +254,15 @@ export class DiagramEditor {
         const newParent = this.svg.getElementById(move.parentId ?? 'Content') as SVGElement;
         newParent.appendChild(element);
       }
-      const newX = move.position.x; 
-      const newY = move.position.y;
-      this.selectedElement.setAttributeNS(null, 'transform', `translate(${Math.round(newX / 12) * 12}, ${Math.round(newY / 12) * 12})`);
+      this.selectedElement.setAttributeNS(null, 'transform', `translate(${move.position.x}, ${move.position.y})`);
+
+      const diagramElement = this.diagram.GetDiagramObjectById(move.elementId) as ArchiDiagramChild
+      const connectionsToRerender = this.diagram.DescendantsWithSourceConnections.filter(o => o instanceof ArchiSourceConnection && (o.Source.Id == diagramElement.Id || o.TargetId == diagramElement.Id)) as ArchiSourceConnection[];
+      connectionsToRerender.forEach(c => {
+        const lineG = this.selectedElement.ownerDocument.getElementById(c.Id);
+        if (lineG)
+          lineG.classList.add('highlight');
+      });
     }
   }
 
@@ -255,39 +282,6 @@ export class DiagramEditor {
     }
   }
 
-  private onPointerUp(evt: PointerEvent) {
-    if (this.selectedElement && this.selectedElement.classList.contains('dragging')) {
-      // if (this.selectedDropTarget) {
-        const [elementOffsetX, elementOffsetY] = this.getOffsetFromContent(this.selectedElement);
-        const [parentOffsetX, parentOffsetY] = this.getOffsetFromContent(this.selectedDropTarget ?? this.contentElement);
-  
-        const change =
-          <IDiagramChange>{
-            move: {
-              elementId: this.selectedElement.id,
-              position: { x: elementOffsetX - parentOffsetX, y: elementOffsetY - parentOffsetY} ,
-              parentId: (this.selectedDropTarget ?? this.contentElement).id
-            }
-          }
-        this.doSvgChange(change);
-        this.doDiagramChange(change);
-      // } else {
-      //   const firstConnector = this.contentElement.querySelector(':scope>.con');
-      //   if (firstConnector)
-      //     this.contentElement.insertBefore(this.selectedElement, firstConnector);
-      //   else
-      //     this.contentElement.appendChild(this.selectedElement);
-      // }
-      this.selectedElement.classList.remove('dragging');
-      this.svg.classList.remove('dragging');
-    }
-    if (this.selectedDropTarget) {
-      this.selectedDropTarget.classList.remove('drop');
-    }
-    this.selectedDropTarget = null;
-    this.selectedElement = null;
-  }
-  
   private getMousePosition(evt: PointerEvent) {
     const CTM = this.svg.getScreenCTM();
     return {
