@@ -40,7 +40,7 @@ export class DiagramRenderer {
     children.forEach(child => this.addElement(child, parent));
   }
 
-  private addElement(child: ArchiDiagramChild, parent: Element) {
+  public addElement(child: ArchiDiagramChild, parent: Element) {
     let archiElement = this.project.getById(child.ElementId);
     if (archiElement == null) {
       archiElement = new ArchiEntity();

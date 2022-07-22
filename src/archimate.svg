@@ -113,7 +113,7 @@
     g.element>foreignObject>div>div:first-child {
       margin-bottom: auto;
       /* Make it push flex items to the center */
-      line-height: 1em;
+      line-height: 1.2em;
     }
 
     g.element>foreignObject:last-child>div>div:first-child {
