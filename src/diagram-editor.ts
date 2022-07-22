@@ -148,7 +148,7 @@ export class DiagramEditor {
       element = element.parentElement;
     return element;
   }
-  private getOffsetFromContent(element: SVGGElement): [number, number] {
+  private getOffsetFromContent(element: SVGGElement): {x: number, y: number} {
     let elementOffsetX = 0;
     let elementOffsetY = 0;
     while (element !== this.contentElement) {
@@ -157,7 +157,7 @@ export class DiagramEditor {
       elementOffsetY += transform.matrix.f;
       element = element.parentElement as unknown as SVGGElement;
     }
-    return [elementOffsetX, elementOffsetY];
+    return { x: elementOffsetX, y: elementOffsetY };
   }
 
   private onPointerMove(evt: PointerEvent) {
@@ -198,6 +198,14 @@ export class DiagramEditor {
     if (this.selectedElement && this.selectedElement.classList.contains('dragging')) {
       // if (this.selectedDropTarget) {
 
+        if (this.activeChange.move) {
+          if (this.selectedDropTarget) {
+            this.activeChange.move.parentId = this.selectedDropTarget.id;
+            const parentOffset = this.getOffsetFromContent(this.selectedDropTarget);
+            this.activeChange.move.position.x -= parentOffset.x;
+            this.activeChange.move.position.y -= parentOffset.y;
+          }
+        }
         this.doSvgChange(this.activeChange);
         this.doDiagramChange(this.activeChange);
 

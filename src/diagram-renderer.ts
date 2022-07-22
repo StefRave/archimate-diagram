@@ -1,4 +1,4 @@
-import { ArchimateProject, ArchiDiagram, ArchiDiagramChild, ElementPos, ArchiDiagramObject, ArchiEntity, ArchiSourceConnection } from './greeter';
+import { ArchimateProject, ArchiDiagram, ArchiDiagramChild, ElementPos, ArchiDiagramObject, ArchiEntity, ArchiSourceConnection, ElementBounds } from './greeter';
 import svgSource from './archimate.svg?raw';
 
 export class DiagramRenderer {
@@ -49,44 +49,15 @@ export class DiagramRenderer {
       if (archiElement.entityType === 'Note') {
         let textContent = Array.from(child.Element.childNodes).filter(n => n.nodeName === 'content')[0]?.textContent ?? "";
         textContent = textContent
-          .replace(/\uf0b7|\uf0a7/g, '•') // TODO: wingdings to unicode: http://www.alanwood.net/demos/wingdings.html
+          .replace(/[\uf0b7\uf0a7]/g, '•') // TODO: wingdings to unicode: http://www.alanwood.net/demos/wingdings.html
           .replace(/\r/g, '');
         archiElement.name = textContent;
       }
       archiElement.documentation = child.Element.getAttribute('documentation');
     }
-    let es = this.template.getElementByType(archiElement.entityType)?.outerHTML;
-    if (es == null && (archiElement.entityType.startsWith('Technology') || archiElement.entityType.startsWith('Application'))) {
-      es = this.template.getElementByType(archiElement.entityType.replace(/Technology|Application/, 'Business'))?.outerHTML;
-      if (es != null && archiElement.entityType.startsWith('Technology'))
-        es = es.replace('business', 'technology');
-      else if (es != null && archiElement.entityType.startsWith('Application'))
-        es = es.replace('business', 'application');
-    }
-    if (!es)
-      es = this.template.getElementByType('todo').outerHTML;
+    const e = this.template.getElementByType(archiElement, child.bounds);
 
-    const { x, y, width, height } = child.bounds;
-    es = es.replace(/(?<!\d)168(?!\d)/g, `${width}`);
-    es = es.replace(/(?<!\d)152(?!\d)/g, `${width - 16}`);
-    es = es.replace(/(?<!\d)52(?!\d)/g, `${height - 8}`);
-    es = es.replace(/(?<!\d)44(?!\d)/g, `${height - 16}`);
-    es = es.replace(/(?<!\d)160(?!\d)/g, `${width - 8}`);
-    es = es.replace(/(?<!\d)60(?!\d)/g, `${height}`);
-    es = es.replace(/(?<!\d)84(?!\d)/g, `${width / 2}`);
-    if (archiElement.entityType === 'Grouping' || archiElement.entityType === 'Group')
-      es = es.replace(/(?<!\d)156(?!\d)/g, `${width - 12}`);
-    if (archiElement.entityType === 'Junction') {
-      if (archiElement.element.getAttribute('type') === 'or')
-        es = es.replace('class=\'', 'class=\'or ');
-
-      const ws = +(width / 2).toFixed(2);
-      es = es.replace('cx="5" cy="5" rx="5" ry="5"', `cx='${ws}' cy='${ws}' rx='${ws}' ry='${ws}'`);
-    }
-    const parser = new DOMParser();
-    const e = <Element>parser.parseFromString(es, 'text/xml').firstChild;
-
-    e.setAttribute('transform', `translate(${x}, ${y})`);
+    e.setAttribute('transform', `translate(${child.bounds.x}, ${child.bounds.y})`);
     e.setAttribute('id', child.Id.toString());
     const div = e.querySelector('foreignObject>div>div');
     if (div != null) {
@@ -100,11 +71,7 @@ export class DiagramRenderer {
         div.parentNode.appendChild(d);
       }
     }
-    if (archiElement.documentation) {
-      const d = e.ownerDocument.createElementNS(e.namespaceURI, 'title');
-      d.textContent = archiElement.documentation;
-      e.insertBefore(d, e.firstChild);
-    }
+    addDocumentation();
 
     let style = '';
     if (child.FillColor)
@@ -118,6 +85,15 @@ export class DiagramRenderer {
     parent.append(e);
 
     this.addElements(child.Children, e);
+
+    
+    function addDocumentation() {
+      if (archiElement.documentation) {
+        const d = e.ownerDocument.createElementNS(e.namespaceURI, 'title');
+        d.textContent = archiElement.documentation;
+        e.insertBefore(d, e.firstChild);
+      }
+    }
   }
 
   public clearRelations() {
@@ -350,8 +326,52 @@ export class DiagramTemplate {
     });
     return selection;
   }
-  public getElementByType(typeName: string): Element {
-    return this.elementByType.get(typeName)?.cloneNode(true) as Element;
+
+  public getElementByType(archiElement: ArchiEntity, bounds: ElementBounds): Element {
+    const typeName = archiElement.entityType;
+    
+    let es = this.createCloneOfType(typeName);
+
+    const { width, height } = bounds;
+    if (typeName == 'Value')
+      es = es.replace('ellipse cx="84" cy="30" rx="84" ry="30"', `ellipse cx="${width / 2}" cy="${height / 2}" rx="${width / 2}" ry="${height / 2}"`);
+    es = es.replace(/(?<!\d)168(?!\d)/g, `${width}`);
+    es = es.replace(/(?<!\d)152(?!\d)/g, `${width - 16}`);
+    es = es.replace(/(?<!\d)52(?!\d)/g, `${height - 8}`);
+    es = es.replace(/(?<!\d)44(?!\d)/g, `${height - 16}`);
+    es = es.replace(/(?<!\d)160(?!\d)/g, `${width - 8}`);
+    es = es.replace(/(?<!\d)60(?!\d)/g, `${height}`);
+    es = es.replace(/(?<!\d)84(?!\d)/g, `${width / 2}`);
+    if (typeName === 'Grouping' || typeName === 'Group')
+      es = es.replace(/(?<!\d)156(?!\d)/g, `${width - 12}`);
+    if (typeName === 'Junction') {
+      if (archiElement.element.getAttribute('type') === 'or')
+        es = es.replace('class=\'', 'class=\'or ');
+
+      const ws = +(width / 2).toFixed(2);
+      es = es.replace('cx="5" cy="5" rx="5" ry="5"', `cx='${ws}' cy='${ws}' rx='${ws}' ry='${ws}'`);
+    }
+    const parser = new DOMParser();
+    return <Element>parser.parseFromString(es, 'text/xml').firstChild;
+  }
+
+  private createCloneOfType(typeName: string) : string {
+    const elementByType = this.elementByType;
+    let t = cloneFromTemplate(typeName);
+    if (t != null)
+      return t;
+    
+    if (typeName.startsWith('Technology') || typeName.startsWith('Application')) {
+      t = cloneFromTemplate(typeName.replace(/Technology|Application/, 'Business'));
+      if (t != null)
+        return t.replace('business', typeName.startsWith('Technology') ? 'technology' : 'application');
+    }
+    return cloneFromTemplate('todo');
+
+    function cloneFromTemplate(name: string): string {
+      const clone = elementByType.get(name)?.cloneNode(true) as Element;
+      return clone?.outerHTML;
+    }
   }
 
   public static getFromDrawing(): DiagramTemplate {

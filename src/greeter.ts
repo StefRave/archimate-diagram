@@ -254,9 +254,6 @@ export class ArchiDiagramChild extends ArchiDiagramObject {
             archiId(child.getElementsByClassName('archimateElement')[0]);
 
         const bounds = child.getElementsByTagName('bounds')[0];
-        if (this.Id === '3785')
-            this.Id.toString();
-
         this._bounds = new ElementBounds(
             parseFloat(bounds.getAttribute('x') ?? '0'),
             parseFloat(bounds.getAttribute('y') ?? '0'),
