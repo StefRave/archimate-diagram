@@ -4,11 +4,12 @@ import svgSource from './archimate.svg?raw';
 export class DiagramRenderer {
   public readonly svgDocument: Document;
   public readonly svgContent: Element;
-
+  private readonly sourceConnectionMiddlePoints: Map<string, ElementPos>;
   constructor(public readonly project: ArchimateProject, public readonly diagram: ArchiDiagram, public readonly template: DiagramTemplate) {
-
     this.svgDocument = this.template.getEmptySvg();
     this.svgContent = this.svgDocument.getElementById('Content');
+
+    this.sourceConnectionMiddlePoints = new Map<string, ElementPos>();
   }
 
   public buildSvg(): Document {
@@ -99,59 +100,58 @@ export class DiagramRenderer {
   public clearRelations() {
     const allConnections = this.svgContent.parentElement.querySelectorAll('g.con');
     allConnections.forEach(c => c.remove());
+    this.sourceConnectionMiddlePoints.clear();
   }
   
   public addRelations() {
     let connectionsNext: ArchiSourceConnection[] =
       this.diagram.Descendants.flatMap(child => child.SourceConnections);
     let connections: ArchiSourceConnection[] = [];
-
-    const sourceConnectionMiddlePoints = new Map<string, ElementPos>();
+    this.sourceConnectionMiddlePoints.clear();
 
     while (connectionsNext.length > 0) {
       connections = connectionsNext;
       connectionsNext = [];
 
       for (const sourceConnection of connections) {
-        const [end, endBounds] = getPositionAndBounds(this.diagram.GetDiagramObjectById(sourceConnection.TargetId));
+        const [end, endBounds] = this.getAbsolutePositionAndBounds(this.diagram.GetDiagramObjectById(sourceConnection.TargetId));
         if (end != null) {
-          const [start, startBounds] = getPositionAndBounds(sourceConnection.Source);
+          const [start, startBounds] = this.getAbsolutePositionAndBounds(sourceConnection.Source);
           const coords = DiagramRenderer.calculateConnectionCoords(start, startBounds, end, endBounds, sourceConnection);
           if (coords.length > 1) {
             const relationEntity = this.project.getById(sourceConnection.RelationShipId);
-            DiagramRenderer.addRelation(this.svgContent, coords, sourceConnection, relationEntity, sourceConnectionMiddlePoints);
+            this.addRelation(coords, sourceConnection, relationEntity);
           }
         }
         else
           connectionsNext.push(sourceConnection);
       }
     }
+  }
 
-    function getPositionAndBounds(item: ArchiDiagramObject): [ElementPos, ElementPos] {
-      if (item instanceof ArchiDiagramChild) {
-        const pos = item.AbsolutePosition.add(new ElementPos(item.bounds.width / 2, item.bounds.height / 2));
-        const bounds = new ElementPos(item.bounds.width / 2, item.bounds.height / 2);
-        return [pos, bounds];
-      }
-      else {
-        const pos = sourceConnectionMiddlePoints.get(item.Id);
-        if (pos != null)
-          return [pos, ElementPos.Zero];
-        return [null, null];
-      }
+  public getAbsolutePositionAndBounds(item: ArchiDiagramObject): [ElementPos, ElementPos] {
+    if (item instanceof ArchiDiagramChild) {
+      const pos = item.AbsolutePosition.add(new ElementPos(item.bounds.width / 2, item.bounds.height / 2));
+      const bounds = new ElementPos(item.bounds.width / 2, item.bounds.height / 2);
+      return [pos, bounds];
+    }
+    else {
+      const pos = this.sourceConnectionMiddlePoints.get(item.Id);
+      if (pos != null)
+        return [pos, ElementPos.Zero];
+      return [null, null];
     }
   }
 
-  static addRelation(group: Element, coords: ElementPos[], sourceConnection: ArchiSourceConnection, relationEntity: ArchiEntity,
-    sourceConnectionMiddlePoints: Map<string, ElementPos>) {
+  private addRelation(coords: ElementPos[], sourceConnection: ArchiSourceConnection, relationEntity: ArchiEntity) {
     const d = DiagramRenderer.coordsToPathD(coords);
 
-    const editPointGroup = DiagramRenderer.addEditPointGroup(group, sourceConnection, relationEntity);
+    const editPointGroup = DiagramRenderer.addEditPointGroup(this.svgContent, sourceConnection, relationEntity);
     DiagramRenderer.addConnectionPath(editPointGroup, relationEntity, d, sourceConnection);
     DiagramRenderer.addConnectionPathDetectLine(editPointGroup, d);
     DiagramRenderer.addDragPoints(editPointGroup, coords);
 
-    sourceConnectionMiddlePoints.set(sourceConnection.Id,
+    this.sourceConnectionMiddlePoints.set(sourceConnection.Id,
       coords.length % 2 === 1 ? coords[(coords.length - 1) / 2] :
         coords[coords.length / 2 - 1].add(coords[coords.length / 2]).multiply(0.5));
   }
@@ -159,12 +159,7 @@ export class DiagramRenderer {
   static addDragPoints(group: Element, coords: ElementPos[]) {
     for (let i = 0; i < coords.length; i++) {
       const curr = coords[i];
-      let circle = group.ownerDocument.createElementNS(group.namespaceURI, 'circle');
-      circle.setAttribute('cx', curr.x.toString());
-      circle.setAttribute('cy', curr.y.toString());
-      circle.setAttribute('r', '3');
-
-      group.appendChild(circle);
+      let circle: Element;
       if (i > 0) {
         const prev = coords[i - 1];
         circle = group.ownerDocument.createElementNS(group.namespaceURI, 'circle');
@@ -173,6 +168,13 @@ export class DiagramRenderer {
         circle.setAttribute('r', '2');
         group.appendChild(circle);
       }
+      circle = group.ownerDocument.createElementNS(group.namespaceURI, 'circle');
+      circle.setAttribute('cx', curr.x.toString());
+      circle.setAttribute('cy', curr.y.toString());
+      circle.setAttribute('r', '3');
+      if (i === 0 || i === coords.length - 1)
+        circle.classList.add('end');
+      group.appendChild(circle);
     }
   }
 

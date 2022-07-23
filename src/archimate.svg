@@ -274,6 +274,9 @@
       cursor: move;
     }
 
+    g.con.selected circle.end {
+      cursor: crosshair;
+    }
     g.element>g.selection {
       display: none;
       stroke: #000;
