@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<link rel="shortcut icon" href="#" />
+<head>
+    <title>Archi Diagram to SVG</title>
+    <link rel="icon" href="data:,">
+  <script type="module" crossorigin src="assets/index.2b117fb9.js"></script>
+  <link rel="stylesheet" href="assets/index.6b97534c.css">
+</head>
+<body>
+    <h1>Pure typescript Archi Diagram viewer</h1>
+    <p>
+    <a href="https://github.com/StefRave/archimate-diagram">See project on Github.</a><br />
+    Render any <a href="https://www.archimatetool.com/"> model to SVG</a>
+    </p>
+    <input id="fileUpload" type="file" name="fileUpload" />
+    <button id="uploadNutton" onclick="my.uploadFile()">View</button>
+    <div class="grid">
+      <div id="leftThing" class="split split-horizontal" >
+        <ul id="diagramTree">
+        </ul>
+      </div>
+      <div class="vertical-gutter"></div>
+      <div id="svgTarget" class="split split-horizontal">
+      </div>
+    </div>
+    
+</body>
+</html>
