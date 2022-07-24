@@ -109,6 +109,7 @@ export class DiagramEditor {
             parentIdOld: diagramElement.parent?.Id ?? this.diagram.Id,
           }
         }
+        this.selectedDropTarget = this.selectedElement.parentElement as unknown as SVGGElement;
       }
     } else if (target.tagName === 'circle' && target.parentElement.classList.contains('con'))
     {
@@ -219,8 +220,8 @@ export class DiagramEditor {
     if (document.activeElement instanceof HTMLElement)
       document.activeElement.blur();
     
-    const coord = this.getMousePosition(evt);
-    const delta = { x: coord.x - this.startDragMousePosition.x, y: coord.y - this.startDragMousePosition.y };
+    const mouseCoords = this.getMousePosition(evt);
+    const delta = { x: mouseCoords.x - this.startDragMousePosition.x, y: mouseCoords.y - this.startDragMousePosition.y };
     const distanceFromStart = Math.sqrt(delta.x ** 2 + delta.y ** 2);
 
     if (!this.activeDragging) {
@@ -231,7 +232,7 @@ export class DiagramEditor {
       return;
 
     if (this.activeChangeAction == ChangeAction.Move) {
-      const newPosition = { x: Math.round((coord.x - this.startDragMouseOffset.x) / 12) * 12, y: Math.round((coord.y - this.startDragMouseOffset.y) / 12) * 12};
+      const newPosition = { x: Math.round((mouseCoords.x - this.startDragMouseOffset.x) / 12) * 12, y: Math.round((mouseCoords.y - this.startDragMouseOffset.y) / 12) * 12};
       this.activeChange.move.positionNew.x = newPosition.x;
       this.activeChange.move.positionNew.y = newPosition.y;
 
@@ -263,10 +264,14 @@ export class DiagramEditor {
       const change = this.activeChange.connection;
       change.bendPointsNew = change.bendPointsOld.map(xy => <IXy>{ x: xy.x, y: xy.y});
       let bendPointIndex = -1;
+
+      const sourceConnection = this.diagram.GetDiagramObjectById(change.sourceConnectionId) as ArchiSourceConnection;
+      const [start, startBounds] = this.renderer.getAbsolutePositionAndBounds(sourceConnection.Source);
+      const [end, endBounds] = this.renderer.getAbsolutePositionAndBounds(this.diagram.GetDiagramObjectById(sourceConnection.TargetId));
+      const connectionCoords = DiagramRenderer.calculateConnectionCoords(start, startBounds, end, endBounds, sourceConnection);
+
       if (change.index % 2 == 1) /* intermediate point */ {
-        const sourceConnection = this.diagram.GetDiagramObjectById(change.sourceConnectionId) as ArchiSourceConnection;
-        const positionAndBounds = this.renderer.getAbsolutePositionAndBounds(sourceConnection.Source)
-        const position = { x: this.startDragMousePosition.x - positionAndBounds[0].x, y: this.startDragMousePosition.y - positionAndBounds[0].y };
+        const position = { x: this.startDragMousePosition.x - start.x, y: this.startDragMousePosition.y - start.y };
         bendPointIndex = (change.index - 1) / 2;
         change.bendPointsNew = [...change.bendPointsNew.slice(0, bendPointIndex), {x: position.x, y: position.y}, ...change.bendPointsNew.slice(bendPointIndex)]
       }
@@ -276,6 +281,23 @@ export class DiagramEditor {
         change.bendPointsNew[bendPointIndex].x = change.bendPointsNew[bendPointIndex].x + delta.x;
         change.bendPointsNew[bendPointIndex].y = change.bendPointsNew[bendPointIndex].y + delta.y;
       }
+      if (ElementPos.IsInsideBounds(mouseCoords, start, startBounds))
+        change.bendPointsNew = change.bendPointsNew.slice(bendPointIndex + 1);
+      else if (ElementPos.IsInsideBounds(mouseCoords, end, endBounds))
+        change.bendPointsNew = change.bendPointsNew.slice(0, bendPointIndex);
+      else {
+        // remove bendpoints if mouse overlaps with an existing bendpoint
+        for (let i = 0; i < connectionCoords.length - 2; i++) { // -2 to skip start and end
+          if (i != bendPointIndex && ElementPos.IsInsideBounds(mouseCoords, connectionCoords[i + 1])) {
+            if (i < bendPointIndex)
+              change.bendPointsNew = [...change.bendPointsNew.slice(0, i + 1), ...change.bendPointsNew.slice(bendPointIndex + 1)]
+            else
+              change.bendPointsNew = [...change.bendPointsNew.slice(0, bendPointIndex), ...change.bendPointsNew.slice(i)]
+            break;
+          }
+        }
+      }
+
       this.doDiagramChange(this.activeChange);
       this.doSvgChange(this.activeChange);
       this.doRelationShipSelection(this.svg.getElementById(this.activeChange.connection.sourceConnectionId));

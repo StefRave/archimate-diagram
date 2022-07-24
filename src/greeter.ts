@@ -339,6 +339,14 @@ export class ElementPos {
     public add = (b: ElementPos) => new ElementPos(this.x + b.x, this.y + b.y);
     public subtract = (b: ElementPos) => new ElementPos(this.x - b.x, this.y - b.y);
     public multiply = (b: number) => new ElementPos(this.x * b, this.y * b);
+
+    public static IsInsideBounds(pos: {x: number, y: number}, center: {x: number, y: number}, bounds = {x: 0, y: 0}, minBounds = 4): boolean {
+      return pos.x >= center.x - Math.max(bounds.x, minBounds)
+        &&   pos.x <= center.x + Math.max(bounds.x, minBounds)
+        &&   pos.y >= center.y - Math.max(bounds.y, minBounds)
+        &&   pos.y <= center.y + Math.max(bounds.y, minBounds);
+    }
+
 }
 
 export class ElementBounds {

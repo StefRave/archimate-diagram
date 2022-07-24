@@ -1,5 +1,6 @@
 import { DiagramEditor } from './diagram-editor';
-import { DiagramRenderer, DiagramTemplate } from './diagram-renderer';
+import { DiagramTemplate } from './diagram-template';
+import { DiagramRenderer } from './diagram-renderer';
 import { ArchiDiagram, ArchimateProject, ArchimateProjectStorage } from './greeter';
 import './index.scss';
 import Split from 'split-grid'
