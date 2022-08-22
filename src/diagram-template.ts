@@ -35,16 +35,21 @@ export class DiagramTemplate {
 
     const { width, height } = bounds;
     if (typeName == 'Value')
-      es = es.replace('ellipse cx="84" cy="30" rx="84" ry="30"', `ellipse cx="${width / 2}" cy="${height / 2}" rx="${width / 2}" ry="${height / 2}"`);
-    es = es.replace(/(?<!\d)168(?!\d)/g, `${width}`);
-    es = es.replace(/(?<!\d)152(?!\d)/g, `${width - 16}`);
-    es = es.replace(/(?<!\d)52(?!\d)/g, `${height - 8}`);
-    es = es.replace(/(?<!\d)44(?!\d)/g, `${height - 16}`);
-    es = es.replace(/(?<!\d)160(?!\d)/g, `${width - 8}`);
-    es = es.replace(/(?<!\d)60(?!\d)/g, `${height}`);
-    es = es.replace(/(?<!\d)84(?!\d)/g, `${width / 2}`);
-    if (typeName === 'Grouping' || typeName === 'Group')
-      es = es.replace(/(?<!\d)156(?!\d)/g, `${width - 12}`);
+      es = es.replace('ellipse cx="84" cy="30" rx="84" ry="30"', `ellipse cx="♥${width / 2}" cy="♥${height / 2}" rx="${width / 2}" ry="${height / 2}"`);
+    
+    es = es.replace(/\d{2,}/g, (sub => { 
+      switch(sub)
+      {
+        case '168': return `${width}`; 
+        case '152': return `${width - 16}`; 
+        case '52': return `${height - 8}`; 
+        case '44': return `${height - 16}`; 
+        case '160': return `${width - 8}`; 
+        case '60': return `${height}`; 
+        case '84': return `${width / 2}`; 
+        case '156': return `${width  - 12}`; 
+        default: return sub;
+      }}));
     if (typeName === 'Junction') {
       if (archiElement.element.getAttribute('type') === 'or')
         es = es.replace('class=\'', 'class=\'or ');

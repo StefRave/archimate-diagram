@@ -19,6 +19,7 @@ export class DiagramEditor {
   }
 
   public makeDraggable() {
+    this.svg.addEventListener('touchstart', (evt) => this.onTouchStart(evt));
     this.svg.addEventListener('pointerdown', (evt) => this.onPointerDown(evt));
     this.svg.addEventListener('pointermove', (evt) => this.onPointerMove(evt));
     this.svg.addEventListener('pointerup', () => this.onPointerUp());
@@ -67,9 +68,17 @@ export class DiagramEditor {
     }
   }
 
+  private onTouchStart(evt: TouchEvent) {
+    if (this.activeChangeAction != null || this.selectedElement) {
+      evt.preventDefault();
+      evt.stopImmediatePropagation();
+    }
+  }
+
   private onPointerDown(evt: PointerEvent) {
     const target = evt.target as SVGElement;
-
+    evt.preventDefault();
+    evt.stopImmediatePropagation();
     this.selectedElement = target.closest('.element');
     const controlKeyDown = evt.ctrlKey;
     this.activeDragging = false;
@@ -111,8 +120,8 @@ export class DiagramEditor {
         }
         this.selectedDropTarget = this.selectedElement.parentElement as unknown as SVGGElement;
       }
-    } else if (target.tagName === 'circle' && target.parentElement.classList.contains('con'))
-    {
+    }
+    else if (target.tagName === 'circle' && target.parentElement.classList.contains('con')) {
       if (!target.classList.contains('end')) {
         this.activeChangeAction = ChangeAction.Connection;
         let index = 0;
