@@ -34,9 +34,6 @@ export class DiagramTemplate {
     let es = this.createCloneOfType(typeName);
 
     const { width, height } = bounds;
-    if (typeName == 'Value')
-      es = es.replace('ellipse cx="84" cy="30" rx="84" ry="30"', `ellipse cx="♥${width / 2}" cy="♥${height / 2}" rx="${width / 2}" ry="${height / 2}"`);
-    
     es = es.replace(/\d{2,}/g, (sub => { 
       switch(sub)
       {
@@ -46,6 +43,7 @@ export class DiagramTemplate {
         case '44': return `${height - 16}`; 
         case '160': return `${width - 8}`; 
         case '60': return `${height}`; 
+        case '30': return `${height / 2}`; 
         case '84': return `${width / 2}`; 
         case '156': return `${width  - 12}`; 
         default: return sub;

@@ -10,6 +10,8 @@ import { ArchiEntityTree } from './ArchiEntityTree';
 const my: any = (window as any).my = {
   uploadFile: uploadFile,
   save: save,
+  viewSvg: viewSvg,
+  viewPng: viewPng,
 };
 
 Split({
@@ -83,6 +85,37 @@ async function uploadFile() {
   reader.onerror = function () {
    console.log(reader.error);
   };
+}
+
+function getCleanedSvgForExport(): SVGSVGElement {
+  const svg = svgTarget.childNodes[0] as SVGSVGElement;
+  const svgC = svg.cloneNode(true) as SVGSVGElement;
+  svgC.querySelector(':scope>rect').setAttribute('fill', '#fff');
+  return svgC;
+}
+
+async function viewSvg() {
+  const svg = getCleanedSvgForExport();
+  const svgBlob = new Blob([svg.outerHTML], {type:"image/svg+xml;charset=utf-8"});
+  const svgUrl = URL.createObjectURL(svgBlob);
+  window.open(svgUrl, '_blank');
+}
+
+async function viewPng() {
+  const svg = getCleanedSvgForExport();
+
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  const loader = new Image;                        
+  loader.width = canvas.width = svg.width.baseVal.value;
+  loader.height = canvas.height = svg.height.baseVal.value;
+  const win = window.open('', '_blank');
+  loader.onload = function(){
+    ctx.drawImage( loader, 0, 0, loader.width, loader.height );
+    win.location.href = canvas.toDataURL();
+  };
+  const svgAsXML = svg.outerHTML;
+  loader.src = 'data:image/svg+xml,' + encodeURIComponent( svgAsXML );
 }
 
 onDocumentLoad();
