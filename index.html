@@ -8,13 +8,16 @@
 <body>
     <h1>Pure typescript Archi Diagram viewer</h1>
     <p>
-    <a href="https://github.com/StefRave/archimate-diagram">See project on Github.</a><br />
-    Render any <a href="https://www.archimatetool.com/"> model to SVG</a>
+    Render <a href="https://www.archimatetool.com/">Archi</a> models to SVG in the browser.
+    <a href="https://github.com/StefRave/archimate-diagram">See project on Github.</a>
+    <br>
     </p>
-    <input id="fileUpload" type="file" name="fileUpload" />
-    <button onclick="my.uploadFile()">Open File</button>
-    <button onclick="my.viewSvg()">View SVG</button>
-    <button onclick="my.viewPng()">View PNG</button>
+    <p>
+      <button onclick="my.uploadFile()">Open Achi File</button>
+      &nbsp;
+      <button onclick="my.downloadSvg()">Download SVG</button>
+      <button onclick="my.downloadPng()">Download PNG</button>
+    </p>
     <div class="grid">
       <div id="leftThing" class="split split-horizontal" >
         <ul id="diagramTree">

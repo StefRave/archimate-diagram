@@ -10,8 +10,8 @@ import { ArchiEntityTree } from './ArchiEntityTree';
 const my: any = (window as any).my = {
   uploadFile: uploadFile,
   save: save,
-  viewSvg: viewSvg,
-  viewPng: viewPng,
+  downloadSvg: downloadSvg,
+  downloadPng: downloadPng,
 };
 
 Split({
@@ -74,18 +74,25 @@ async function displayDiagram(project: ArchimateProject, diagram: ArchiDiagram) 
   diagramEditor.makeDraggable();
 }
 
+
 async function uploadFile() {
-  const fileupload = document.getElementById('fileUpload') as HTMLInputElement;
-  const reader = new FileReader();
-  reader.readAsArrayBuffer(fileupload.files[0]);
-  reader.onload = async function () {
-    const project = await ArchimateProjectStorage.GetProjectFromArrayBuffer(reader.result as ArrayBuffer);
-    activateLoadedProject(project, project.diagrams[0]);
-  };
-  reader.onerror = function () {
-   console.log(reader.error);
-  };
+  const fileupload = document.createElement('input');
+  fileupload.type = 'file';
+  fileupload.name = 'fileUpload';
+  fileupload.click();
+  fileupload.onchange = function() { 
+    const reader = new FileReader();
+    reader.readAsArrayBuffer(fileupload.files[0]);
+    reader.onload = async function () {
+      const project = await ArchimateProjectStorage.GetProjectFromArrayBuffer(reader.result as ArrayBuffer);
+      activateLoadedProject(project, project.diagrams[0]);
+    };
+    reader.onerror = function () {
+    console.log(reader.error);
+    };
+  }
 }
+
 
 function getCleanedSvgForExport(): SVGSVGElement {
   const svg = svgTarget.childNodes[0] as SVGSVGElement;
@@ -94,14 +101,18 @@ function getCleanedSvgForExport(): SVGSVGElement {
   return svgC;
 }
 
-async function viewSvg() {
+async function downloadSvg() {
   const svg = getCleanedSvgForExport();
   const svgBlob = new Blob([svg.outerHTML], {type:"image/svg+xml;charset=utf-8"});
   const svgUrl = URL.createObjectURL(svgBlob);
-  window.open(svgUrl, '_blank');
+
+  const link = document.createElement('a');
+  link.download = 'archi.svg';
+  link.href = svgUrl;
+  link.click();
 }
 
-async function viewPng() {
+async function downloadPng() {
   const svg = getCleanedSvgForExport();
 
   const canvas = document.createElement('canvas');
@@ -109,10 +120,13 @@ async function viewPng() {
   const loader = new Image;                        
   loader.width = canvas.width = svg.width.baseVal.value;
   loader.height = canvas.height = svg.height.baseVal.value;
-  const win = window.open('', '_blank');
   loader.onload = function(){
     ctx.drawImage( loader, 0, 0, loader.width, loader.height );
-    win.location.href = canvas.toDataURL();
+
+    const link = document.createElement('a');
+    link.download = 'archi.png';
+    link.href = canvas.toDataURL();
+    link.click();
   };
   const svgAsXML = svg.outerHTML;
   loader.src = 'data:image/svg+xml,' + encodeURIComponent( svgAsXML );
