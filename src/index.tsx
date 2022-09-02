@@ -2,6 +2,7 @@ import { DiagramEditor } from './diagram-editor';
 import { DiagramTemplate } from './diagram-template';
 import { DiagramRenderer } from './diagram-renderer';
 import { ArchiDiagram, ArchimateProject, ArchimateProjectStorage } from './greeter';
+import { ProjectTools } from "./project-tools";
 import './index.scss';
 import Split from 'split-grid'
 import { render, h } from 'preact';
@@ -12,6 +13,7 @@ const my: any = (window as any).my = {
   save: save,
   downloadSvg: downloadSvg,
   downloadPng: downloadPng,
+  projectTools: ProjectTools
 };
 
 Split({
@@ -23,6 +25,7 @@ Split({
 
 const svgTarget = document.getElementById('svgTarget');
 const diagramTemplate = DiagramTemplate.getFromDrawing();
+let diagramEditor: DiagramEditor = null;
 
 async function onDocumentLoad() {
   const project = await ArchimateProjectStorage.GetDefaultProject();
@@ -65,12 +68,15 @@ async function activateLoadedProject(project: ArchimateProject, diagram: ArchiDi
 }
 
 async function displayDiagram(project: ArchimateProject, diagram: ArchiDiagram) {
+  diagramEditor?.dispose();
+
   const renderer = new DiagramRenderer(project, diagram, diagramTemplate)
   const svg = renderer.buildSvg();
   svgTarget.innerHTML = '';
 
+
   const s = svgTarget.appendChild(svg.firstChild) as SVGSVGElement;
-  const diagramEditor = new DiagramEditor(s, project, diagram, renderer);
+  diagramEditor = new DiagramEditor(s, project, diagram, renderer);
   diagramEditor.makeDraggable();
 }
 

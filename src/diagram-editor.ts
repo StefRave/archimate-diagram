@@ -13,6 +13,7 @@ export class DiagramEditor {
   private activeChangeAction: ChangeAction; 
   private activeChangeResizeCorner: string;
   private activeDragging: boolean;
+  private keyDownFunction = (evt: KeyboardEvent) => this.onKeyDown(evt);
 
   constructor(private svg: SVGSVGElement, private project: ArchimateProject, private diagram: ArchiDiagram, private renderer: DiagramRenderer) {
     this.contentElement = svg.querySelector('svg>g');
@@ -31,7 +32,13 @@ export class DiagramEditor {
       const sel = window.getSelection();
       sel.removeAllRanges();
     });
-    this.svg.ownerDocument.addEventListener('keydown', (evt) => this.onKeyDown(evt));
+
+    // todo: This event needs to be cleaned op when a the DiagramEditor cleaned up
+    this.svg.ownerDocument.addEventListener('keydown', this.keyDownFunction);
+  }
+
+  dispose() {
+    this.svg.ownerDocument.removeEventListener('keydown', this.keyDownFunction);
   }
 
   private onKeyDown(evt: KeyboardEvent) {

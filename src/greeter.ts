@@ -92,7 +92,7 @@ export class ArchimateProject {
         this.entitiesById = new Map<string, ArchiEntity>();
         entities.forEach(o => this.entitiesById.set(o.Id, o));
         this.relationshipsById = new Map<string, Relationship>();
-        entities.filter(o => o instanceof Relationship).forEach(o => this.entitiesById.set(o.Id, o));
+        entities.filter(o => o instanceof Relationship).forEach(o => this.relationshipsById.set(o.Id, <Relationship>o));
     }
 
     public getById = (id: string) => this.entitiesById.get(id);
@@ -100,8 +100,11 @@ export class ArchimateProject {
     public get diagrams(): ArchiDiagram[] {
       return asSequence(this.entitiesById.values()).filter(o => o instanceof ArchiDiagram).map(o => <ArchiDiagram>o).toArray();
     }
-    private get relationships(): Sequence<Relationship> {
+    public get relationships(): Sequence<Relationship> {
       return asSequence(this.relationshipsById.values());
+    }
+    public get entities(): Sequence<ArchiEntity> {
+      return asSequence(this.entitiesById.values()).filter(o => !(o instanceof Relationship));
     }
 
     public getTargetRelationShips = (id: string, relaType?: string) => this.relationships.filter(r => r.target === id && (!relaType || relaType == r.entityType));
@@ -139,6 +142,19 @@ export class ArchiEntity {
 export class Relationship extends ArchiEntity {
     public source: string;
     public target: string;
+
+    public setSource(newId: string) {
+      this.source = newId;
+      if (this.element.getAttribute('source') == null)
+        throw new Error("source attribute expected");
+      this.element.setAttribute('source', newId);
+    }
+    public setTarget(newId: string) {
+      this.source = newId;
+      if (this.element.getAttribute('target') == null)
+        throw new Error("source attribute expected");
+      this.element.setAttribute('target', newId);
+    }
 }
 
 export class ArchiDiagram extends ArchiEntity {
@@ -226,6 +242,13 @@ export class ArchiDiagramChild extends ArchiDiagramObject {
       return this._parent;
     }
 
+    public setElementId(newId: string) {
+      this.ElementId = newId;
+      if (this.Element.getAttribute('archimateElement') == null)
+        throw new Error("archimateElement attribute exprected");
+        this.Element.setAttribute('archimateElement', newId); 
+    }
+
     resetCache() {
       this.children = null;
     }
@@ -306,6 +329,13 @@ export class ArchiSourceConnection extends ArchiDiagramObject {
     LineColor: string;
     FillColor: string;
     Source: ArchiDiagramObject;
+
+    public setRelationShipId(id: string) {
+      this.RelationShipId = id;
+      if (this.Element.getAttribute('archimateRelationship') == null)
+        throw new Error("archimateRelationship attribute expected");
+      this.Element.setAttribute('archimateRelationship', id);
+    }
 
     constructor(element: Element, source: ArchiDiagramObject) {
         super(element);
