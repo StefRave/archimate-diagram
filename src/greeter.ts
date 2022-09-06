@@ -12,8 +12,9 @@ export class ArchimateProjectStorage {
     public static async GetProjectFromArrayBuffer(file: ArrayBuffer): Promise<ArchimateProject> {
         const start = new Int8Array(file.slice(0, 2));
         let data = file;
+        let zip: JSZip = null;
         if (new TextDecoder().decode(start) === 'PK') {
-            const zip = await JSZip.loadAsync(file);
+            zip = await JSZip.loadAsync(file);
             data = await zip.file('model.xml').async('arraybuffer');
         }
         const xmlString = new TextDecoder().decode(data);
@@ -21,10 +22,10 @@ export class ArchimateProjectStorage {
         const parser = new DOMParser();
         const archiDoc = parser.parseFromString(xmlString, 'application/xml');
 
-        return ArchimateProjectStorage.GetFromDocument(archiDoc);
+        return ArchimateProjectStorage.GetFromDocument(archiDoc, zip);
     }
 
-    public static GetFromDocument(archiDoc: Document): ArchimateProject {
+    public static GetFromDocument(archiDoc: Document, zip: JSZip): ArchimateProject {
         const result = archiDoc.evaluate('//element[@xsi:type]', archiDoc, this.resolver, XPathResult.ANY_TYPE, null);
         let n: Node;
 
@@ -33,7 +34,7 @@ export class ArchimateProjectStorage {
         while ((n = result.iterateNext())) {
             objects.push(this.ToArchiObject(<Element>n));
         }
-        return new ArchimateProject(objects, archiDoc.firstElementChild);
+        return new ArchimateProject(objects, archiDoc.firstElementChild, zip);
     }
 
     private static resolver(prefix: string) {
@@ -84,7 +85,7 @@ export class ArchimateProject {
     private readonly entitiesById: Map<string, ArchiEntity>;
     private readonly relationshipsById: Map<string, Relationship>;
 
-    constructor(entities: ArchiEntity[], element: Element) {
+    constructor(entities: ArchiEntity[], element: Element, private zip: JSZip) {
         this.element = element;
         this.name = element.getAttribute('name');
         this.version = element.getAttribute('version');
@@ -112,6 +113,12 @@ export class ArchimateProject {
     public getRelatedElementForTarget = (id: string, relaType?: string, type?: string) => this.getTargetRelationShips(id, relaType).map(r => this.getById(r.source)).filter(r => !type || type == r.entityType);
     public getRelatedElementForSource = (id: string, relaType?: string, type?: string) => this.getSourceRelationShips(id, relaType).map(r => this.getById(r.target)).filter(r => !type || type == r.entityType);
     public getDiagramsWithElementId = (id: string) => this.diagrams.filter(e => e.GetElementIds().some(de => de === id));
+
+    getImage(imagePath: string): Promise<Uint8Array> {
+      if (!this.zip)
+        return null;
+      return this.zip.file(imagePath).async('uint8array');
+    }
 
     public getUnused(): ArchiEntity[] {
       const usedIds = this.diagrams.flatMap(d => d.DescendantsWithSourceConnections)

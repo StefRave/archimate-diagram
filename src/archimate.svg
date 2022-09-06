@@ -50,6 +50,11 @@
       --mainColor: #ccc;
     }
 
+    g.canvas {
+      --mainColor: #fff;
+      border: none;
+    }
+
     g.element {
       fill: var(--mainColor);
       stroke: #000;
@@ -962,7 +967,7 @@
         <div xmlns="http://www.w3.org/1999/xhtml" style="width: 168px; height: 60px">
           <div>Outcome</div>
         </div>
-      </foreignObject>
+      </foreignObject> 
     </g>
 
     <g id="Principle" transform="translate(552, 948)" class="motivation element">
@@ -1094,7 +1099,11 @@
         </foreignObject>
       </g>
     </g>
-
+    <g id="CanvasModelImage" transform="translate(552, 528)" class="canvas element">
+      <image width="168" height="60" href="data:image/png;base64, iVBORw0KGgoAAAANSUhEUgAAAAUA
+    AAAFCAYAAACNbyblAAAAHElEQVQI12P4//8/w38GIAXDIBKE0DHxgljNBAAO
+        9TXL0Y4OHwAAAABJRU5ErkJggg==" />
+    </g>
     <g id="ElementLastSelected" transform="translate(192, 528)" class="undefined element selected lastSelection">
       <rect width="168" height="60" />
       <use xlink:href="#ExperimentIcon" x="168" y="0" />

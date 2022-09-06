@@ -29,7 +29,7 @@ export class DiagramTemplate {
   }
 
   public getElementByType(archiElement: ArchiEntity, bounds: ElementBounds): Element {
-    const typeName = archiElement.entityType;
+    const typeName = archiElement.entityType.split(':').pop();
 
     let es = this.createCloneOfType(typeName);
 

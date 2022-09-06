@@ -57,7 +57,19 @@ export class DiagramRenderer {
       archiElement.documentation = child.Element.getAttribute('documentation');
     }
     const e = this.template.getElementByType(archiElement, child.bounds);
-
+    if (child.EntityType.indexOf('Image') >= 0) {
+      const imagePath = child.Element.getAttribute('imagePath');
+      const image = e.querySelector('image') as SVGImageElement;
+      image.setAttribute('href', '');
+      if (imagePath) {
+        this.project.getImage(imagePath).then((imageData) => {
+          const base64String = btoa(String.fromCharCode.apply(null, imageData));
+          const fileExtension = imagePath.split('.').pop();
+  
+          image.setAttribute('href', `data:image/${fileExtension};base64, ${base64String}`);
+        })
+      }
+    }
     e.setAttribute('transform', `translate(${child.bounds.x}, ${child.bounds.y})`);
     e.setAttribute('id', child.Id.toString());
     const div = e.querySelector('foreignObject>div>div');
