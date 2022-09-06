@@ -38,14 +38,16 @@ export class DiagramTemplate {
       switch(sub)
       {
         case '168': return `${width}`; 
+        case '156': return `${width - 12}`; 
         case '152': return `${width - 16}`; 
+        case '160': return `${width - 8}`; 
+        case '166': return `${width - 2}`; 
+        case '84': return `${width / 2}`; 
+        case '60': return `${height}`; 
         case '52': return `${height - 8}`; 
         case '44': return `${height - 16}`; 
-        case '160': return `${width - 8}`; 
-        case '60': return `${height}`; 
         case '30': return `${height / 2}`; 
-        case '84': return `${width / 2}`; 
-        case '156': return `${width  - 12}`; 
+
         default: return sub;
       }}));
     if (typeName === 'Junction') {
