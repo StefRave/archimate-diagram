@@ -57,24 +57,58 @@ export class DiagramRenderer {
       archiElement.documentation = child.Element.getAttribute('documentation');
     }
     const e = this.template.getElementByType(archiElement, child.bounds);
-    if (child.EntityType.indexOf('Image') >= 0) {
+    const div = e.querySelector(':scope>foreignObject>div>div');
+    if (child.EntityType === 'canvas:CanvasModelImage' || child.EntityType === 'canvas:CanvasModelBlock') {
       const imagePath = child.Element.getAttribute('imagePath');
-      const image = e.querySelector('image') as SVGImageElement;
+      const image = e.querySelector('image');
       image.setAttribute('href', '');
       if (imagePath) {
         this.project.getImage(imagePath).then((imageData) => {
-          const base64String = btoa(String.fromCharCode.apply(null, imageData));
+          const base64String = btoa(Uint8ToString(imageData));
           const fileExtension = imagePath.split('.').pop();
   
           image.setAttribute('href', `data:image/${fileExtension};base64, ${base64String}`);
+          const alpha = child.Element.getAttribute('alpha');
+          if (alpha) {
+            image.setAttribute('opacity', `${Number(alpha) / 255}`);
+          }
+
+          function Uint8ToString(u8a: Uint8Array){ // https://stackoverflow.com/a/12713326
+            const CHUNK_SZ = 0x8000;
+            const c = [];
+            for (let i = 0; i < u8a.length; i+=CHUNK_SZ) {
+              c.push(String.fromCharCode.apply(null, u8a.subarray(i, i+CHUNK_SZ)));
+            }
+            return c.join("");
+          }
         })
+      }
+      const textPosition = child.Element.getAttribute('textPosition');
+      switch (textPosition) {
+        case '0': div.classList.add('top'); break;
+        case '1': div.classList.add('middle'); break;
+        case '2': div.classList.add('bottom'); break;
+      }
+      const textAlignment = child.Element.getAttribute('textAlignment');
+      switch (textAlignment) {
+        case '1': div.classList.add('left'); break;
+        case '2': div.classList.add('center'); break;
+        case '4': div.classList.add('right'); break;
+      }
+      const rect = e.querySelector(':scope>rect');
+      const borderColor = child.Element.getAttribute('borderColor');
+      if (borderColor) {
+        rect.setAttribute('stroke', borderColor);
+      }
+      const fillColor = child.Element.getAttribute('fillColor');
+      if (fillColor) {
+        rect.setAttribute('fill', fillColor);
       }
     }
     e.setAttribute('transform', `translate(${child.bounds.x}, ${child.bounds.y})`);
     e.setAttribute('id', child.Id.toString());
-    const div = e.querySelector('foreignObject>div>div');
     if (div != null) {
-      div.textContent = archiElement.name;
+      div.textContent = archiElement.name ?? child.Element.querySelector(':scope>content')?.textContent;
       div.setAttribute('contenteditable', 'true');
 
       if (!e.classList.contains('group') && !e.classList.contains('note')) {
@@ -161,6 +195,7 @@ export class DiagramRenderer {
     const editPointGroup = DiagramRenderer.addEditPointGroup(this.svgContent, sourceConnection, relationEntity);
     DiagramRenderer.addConnectionPath(editPointGroup, relationEntity, d, sourceConnection);
     DiagramRenderer.addConnectionPathDetectLine(editPointGroup, d);
+    // render 'name' according to 'textPosition' 
     DiagramRenderer.addDragPoints(editPointGroup, coords);
 
     this.sourceConnectionMiddlePoints.set(sourceConnection.Id,
@@ -225,6 +260,35 @@ export class DiagramRenderer {
     const path = group.ownerDocument.createElementNS(group.namespaceURI, 'path');
     path.setAttribute('d', d);
     path.setAttribute('class', cssClass);
+
+    if (!relationShipType) {
+      const type = Number(sourceConnection.Element.getAttribute('type'));
+      let markerStart = null;
+      let markerEnd = null;
+      let dashArray = null;
+      if (type & 1)
+        markerEnd = 'Closed';
+      if (type & 16)
+        markerEnd = 'Hollow'
+       if (type & 64)
+        markerEnd = 'Open';
+      if (type & 8)
+        markerStart = 'Closed';
+      if (type & 32)
+        markerStart = 'Hollow'
+      if (type & 128)
+        markerStart = 'Open';
+      if (type & 2)
+        dashArray = '6 4';
+      if (type & 4)
+        dashArray = '2 4';
+      if (markerStart)
+        path.setAttribute('marker-start', `url(#arrow${markerStart}Start)`);
+      if (markerEnd)
+        path.setAttribute('marker-end', `url(#arrow${markerEnd})`);
+      if (dashArray)
+        path.setAttribute('stroke-dasharray', dashArray);
+    }
 
     // https://stackoverflow.com/questions/47088409/svg-attributes-beaten-by-cssstyle-in-priority
     let style = '';
