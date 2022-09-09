@@ -63,6 +63,8 @@ export class ArchimateProjectStorage {
             o = new ArchiDiagram();
         else if (type === 'CanvasModel')
             o = new ArchiDiagram();
+        else if (type == 'SketchModel')
+            o = new ArchiDiagram();
         else
             o = new ArchiEntity();
 
@@ -335,6 +337,7 @@ export class ArchiSourceConnection extends ArchiDiagramObject {
     LineWidth: string;
     LineColor: string;
     FillColor: string;
+    name: string;
     Source: ArchiDiagramObject;
 
     public setRelationShipId(id: string) {
@@ -348,6 +351,7 @@ export class ArchiSourceConnection extends ArchiDiagramObject {
         super(element);
         this.Source = source;
         this.TargetId = element.getAttribute('target');
+        this.name = element.getAttribute('name');
         this.RelationShipId = element.getAttribute('archimateRelationship') ??
             archiId(element.getElementsByTagName('archimateRelationship')[0]);
         const bp = Array.from(element.children).filter(e => e.nodeName === 'bendpoints' || e.nodeName === 'bendpoint');

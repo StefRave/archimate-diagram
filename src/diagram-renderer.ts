@@ -58,30 +58,33 @@ export class DiagramRenderer {
     }
     const e = this.template.getElementByType(archiElement, child.bounds);
     const div = e.querySelector(':scope>foreignObject>div>div');
-    if (child.EntityType === 'canvas:CanvasModelImage' || child.EntityType === 'canvas:CanvasModelBlock') {
-      const imagePath = child.Element.getAttribute('imagePath');
+    const entiyTypeCleaned = child.EntityType.split(':').pop();
+    if (entiyTypeCleaned === 'CanvasModelImage' || entiyTypeCleaned === 'CanvasModelBlock' || entiyTypeCleaned === 'CanvasModelSticky' || entiyTypeCleaned === 'SketchModelSticky' || entiyTypeCleaned === 'SketchModelActor') {
       const image = e.querySelector('image');
-      image.setAttribute('href', '');
-      if (imagePath) {
-        this.project.getImage(imagePath).then((imageData) => {
-          const base64String = btoa(Uint8ToString(imageData));
-          const fileExtension = imagePath.split('.').pop();
-  
-          image.setAttribute('href', `data:image/${fileExtension};base64, ${base64String}`);
-          const alpha = child.Element.getAttribute('alpha');
-          if (alpha) {
-            image.setAttribute('opacity', `${Number(alpha) / 255}`);
-          }
-
-          function Uint8ToString(u8a: Uint8Array){ // https://stackoverflow.com/a/12713326
-            const CHUNK_SZ = 0x8000;
-            const c = [];
-            for (let i = 0; i < u8a.length; i+=CHUNK_SZ) {
-              c.push(String.fromCharCode.apply(null, u8a.subarray(i, i+CHUNK_SZ)));
+      if (image) {
+        const imagePath = child.Element.getAttribute('imagePath');
+        image.setAttribute('href', '');
+        if (imagePath) {
+          this.project.getImage(imagePath).then((imageData) => {
+            const base64String = btoa(Uint8ToString(imageData));
+            const fileExtension = imagePath.split('.').pop();
+    
+            image.setAttribute('href', `data:image/${fileExtension};base64, ${base64String}`);
+            const alpha = child.Element.getAttribute('alpha');
+            if (alpha) {
+              image.setAttribute('opacity', `${Number(alpha) / 255}`);
             }
-            return c.join("");
-          }
-        })
+
+            function Uint8ToString(u8a: Uint8Array){ // https://stackoverflow.com/a/12713326
+              const CHUNK_SZ = 0x8000;
+              const c = [];
+              for (let i = 0; i < u8a.length; i+=CHUNK_SZ) {
+                c.push(String.fromCharCode.apply(null, u8a.subarray(i, i+CHUNK_SZ)));
+              }
+              return c.join("");
+            }
+          })
+        }
       }
       const textPosition = child.Element.getAttribute('textPosition');
       switch (textPosition) {
@@ -195,7 +198,7 @@ export class DiagramRenderer {
     const editPointGroup = DiagramRenderer.addEditPointGroup(this.svgContent, sourceConnection, relationEntity);
     DiagramRenderer.addConnectionPath(editPointGroup, relationEntity, d, sourceConnection);
     DiagramRenderer.addConnectionPathDetectLine(editPointGroup, d);
-    // render 'name' according to 'textPosition' 
+    DiagramRenderer.addConnectionText(editPointGroup, sourceConnection, coords);
     DiagramRenderer.addDragPoints(editPointGroup, coords);
 
     this.sourceConnectionMiddlePoints.set(sourceConnection.Id,
@@ -231,6 +234,27 @@ export class DiagramRenderer {
     path.setAttribute('class', 'RelationshipDetect');
 
     group.appendChild(path);
+  }
+
+  static addConnectionText(group:Element, sourceConnection: ArchiSourceConnection, coords: ElementPos[]) {
+        // render 'name' according to 'textPosition' 
+      if (!sourceConnection.name)
+        return;
+
+      let center: ElementPos;
+      const index = Math.floor((coords.length - 1) / 2);
+      if (coords.length & 1)
+        center = coords[index];
+      else
+        center = coords[index].add(coords[index + 1]).multiply(0.5); 
+      
+      const text = group.ownerDocument.createElementNS(group.namespaceURI, 'text') as SVGTextElement;
+
+      text.setAttribute('x', `${center.x}`);
+      text.setAttribute('y', `${center.y}`);
+      text.textContent = sourceConnection.name;
+      
+      group.appendChild(text);
   }
 
   static addEditPointGroup(group: Element, sourceConnection: ArchiSourceConnection, relationEntity: ArchiEntity) {

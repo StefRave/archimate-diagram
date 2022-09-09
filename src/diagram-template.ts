@@ -72,6 +72,11 @@ export class DiagramTemplate {
       if (t != null)
         return t.replace('business', typeName.startsWith('Technology') ? 'technology' : 'application');
     }
+    if (typeName == 'SketchModelActor')
+      return cloneFromTemplate('BusinessActor');
+   if (typeName == 'SketchModelSticky')
+      return cloneFromTemplate('CanvasModelSticky');
+    
     return cloneFromTemplate('todo');
 
     function cloneFromTemplate(name: string): string {
