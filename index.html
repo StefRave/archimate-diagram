@@ -1,32 +1,35 @@
 <!DOCTYPE html>
 <html lang="en">
-<link rel="shortcut icon" href="#" />
+
 <head>
-    <title>Archi Diagram to SVG</title>
-    <link rel="icon" href="data:,">
+  <link rel="shortcut icon" href="#" />
+  <title>Archi Diagram to SVG</title>
+  <link rel="icon" href="data:,">
 </head>
+
 <body>
-    <h1>Pure typescript Archi Diagram viewer</h1>
-    <p>
+  <h1>Pure typescript Archi Diagram viewer</h1>
+  <p>
     Render <a href="https://www.archimatetool.com/">Archi</a> models to SVG in the browser.
     <a href="https://github.com/StefRave/archimate-diagram">See project on Github.</a>
     <br>
-    </p>
-    <p>
-      <button onclick="my.uploadFile()">Open Achi File</button>
-      &nbsp;
-      <button onclick="my.downloadSvg()">Download SVG</button>
-      <button onclick="my.downloadPng()">Download PNG</button>
-    </p>
-    <div class="grid">
-      <div id="leftThing" class="split split-horizontal" >
-        <ul id="diagramTree">
-        </ul>
-      </div>
-      <div class="vertical-gutter"></div>
-      <div id="svgTarget" class="split split-horizontal">
-      </div>
+  </p>
+  <p>
+    <button onclick="my.uploadFile()">Open Achi File</button>
+    &nbsp;
+    <button onclick="my.downloadSvg()">Download SVG</button>
+    <button onclick="my.downloadPng()">Download PNG</button>
+  </p>
+  <div class="grid">
+    <div id="leftThing" class="split split-horizontal">
+      <ul id="diagramTree">
+      </ul>
     </div>
-    <script type="module" src="/src/index.tsx"></script>
+    <div class="vertical-gutter"></div>
+    <div id="svgTarget" class="split split-horizontal">
+    </div>
+  </div>
+  <script type="module" src="/src/index.tsx"></script>
 </body>
+
 </html>
