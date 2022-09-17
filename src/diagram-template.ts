@@ -1,4 +1,4 @@
-import { ArchiEntity, ElementBounds } from './greeter';
+import { ArchiDiagramChild, ArchiEntity, ElementBounds } from './greeter';
 import svgSource from './archimate.svg?raw';
 
 
@@ -28,12 +28,12 @@ export class DiagramTemplate {
     return selection;
   }
 
-  public getElementByType(archiElement: ArchiEntity, bounds: ElementBounds): Element {
+  public getElementByType(archiElement: ArchiEntity, child: ArchiDiagramChild): Element {
     const typeName = archiElement.entityType.split(':').pop();
 
     let es = this.createCloneOfType(typeName);
 
-    const { width, height } = bounds;
+    const { width, height } = child.bounds;
     es = es.replace(/\d{2,}/g, (sub => { 
       switch(sub)
       {
@@ -58,7 +58,54 @@ export class DiagramTemplate {
       es = es.replace('cx="5" cy="5" rx="5" ry="5"', `cx='${ws}' cy='${ws}' rx='${ws}' ry='${ws}'`);
     }
     const parser = new DOMParser();
-    return <Element>parser.parseFromString(es, 'text/xml').firstChild;
+    const e = <Element>parser.parseFromString(es, 'text/xml').firstChild;
+    const s = e.querySelector(':scope>path.symbol');
+    if (s) {
+        if (child.figureType == 1 || archiElement.entityType === 'Meaning') {
+          e.removeChild(e.children[0]);
+          e.removeChild(e.children[0]);
+          const dNode = s.getAttributeNode('d');
+          const dataSizeHintNode = s.getAttributeNode('data-size-hint');
+          if (dataSizeHintNode) {
+            s.removeAttributeNode(dataSizeHintNode);
+            const dataSizeHint = dataSizeHintNode.value.split(' ');
+            if (!isNaN(parseFloat(dataSizeHint[2]))) {
+              const scaleY = height / parseFloat(dataSizeHint[1]);
+              s.setAttribute('transform', `scale(${scaleY})`);
+              const stretch = (width - (scaleY * parseFloat(dataSizeHint[0]))) / scaleY;
+              dNode.value = dNode.value.replaceAll(dataSizeHint[2], `${stretch}`);
+            } else {
+              const scaleX = width / parseFloat(dataSizeHint[0]);
+              const scaleY = height / parseFloat(dataSizeHint[1]);
+              s.setAttribute('transform', `matrix(${scaleX},0,0,${scaleY},0,0)`);
+            }
+          }
+        } else
+        {
+          e.removeChild(s);
+        }
+    } else if (archiElement.entityType == 'ApplicationComponent') {
+      if (child.figureType == 1) {
+        e.removeChild(e.children[2]);
+        e.removeChild(e.children[2]);
+        e.removeChild(e.children[2]);
+      } else
+      {
+        e.removeChild(e.children[0]);
+        e.removeChild(e.children[0]);
+      }
+    } else if (child.figureType == 1) {
+      const s = e.querySelector(':scope>use');
+      if (s) {
+        while (e.children[0].tagName != 'use')
+          e.removeChild(e.children[0]);
+        s.classList.add('symbol');
+        const scaleY = height / 14;
+        s.setAttribute('transform', `matrix(${scaleY},0,0,${scaleY},${width/2},${height/2})`);
+      }
+    }
+
+    return e;
   }
 
   private createCloneOfType(typeName: string): string {
@@ -67,10 +114,11 @@ export class DiagramTemplate {
     if (t != null)
       return t;
 
-    if (typeName.startsWith('Technology') || typeName.startsWith('Application')) {
-      t = cloneFromTemplate(typeName.replace(/Technology|Application/, 'Business'));
+    const businessDefined = typeName.match(/^Technology|^Application|^Implementation/);
+    if (businessDefined) {
+      t = cloneFromTemplate(typeName.replace(businessDefined[0], 'Business'));
       if (t != null)
-        return t.replace('business', typeName.startsWith('Technology') ? 'technology' : 'application');
+        return t.replace('business', businessDefined[0].toLowerCase());
     }
     if (typeName == 'SketchModelActor')
       return cloneFromTemplate('BusinessActor');
@@ -92,7 +140,7 @@ export class DiagramTemplate {
 
     result.templateDoc = parser.parseFromString(svgSource, 'application/xml');
 
-    const content = result.templateDoc.getElementById('Content');
+    const content = result.templateDoc.getElementById('content');
     result.elementSelection = content.querySelector('g#ElementSelected>g.selection');
 
     const archiElements = Array.from(content.querySelectorAll('g.element'));
@@ -101,6 +149,8 @@ export class DiagramTemplate {
     while (content.firstChild)
       content.removeChild(content.firstChild);
 
+    const icons = result.templateDoc.getElementById("icons");
+    icons.remove();
     return result;
   }
 }

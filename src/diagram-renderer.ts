@@ -7,14 +7,17 @@ export class DiagramRenderer {
   private readonly sourceConnectionMiddlePoints: Map<string, ElementPos>;
   constructor(public readonly project: ArchimateProject, public readonly diagram: ArchiDiagram, public readonly template: DiagramTemplate) {
     this.svgDocument = this.template.getEmptySvg();
-    this.svgContent = this.svgDocument.getElementById('Content');
+    this.svgContent = this.svgDocument.getElementById('content');
 
     this.sourceConnectionMiddlePoints = new Map<string, ElementPos>();
   }
 
   public buildSvg(): Document {
-    this.svgContent.id = this.diagram.Id;
-    this.addElements(this.diagram.Children, this.svgContent);
+    const diagramGroup = this.svgContent.ownerDocument.createElementNS(this.svgContent.namespaceURI, 'g');
+    diagramGroup.id = this.diagram.Id;
+    this.svgContent.appendChild(diagramGroup);
+
+    this.addElements(this.diagram.Children, diagramGroup);
     this.addRelations();
 
     this.setViewBoxSize();
@@ -56,7 +59,7 @@ export class DiagramRenderer {
       }
       archiElement.documentation = child.Element.getAttribute('documentation');
     }
-    const e = this.template.getElementByType(archiElement, child.bounds);
+    const e = this.template.getElementByType(archiElement, child);
     const div = e.querySelector(':scope>foreignObject>div>div');
     const entiyTypeCleaned = child.EntityType.split(':').pop();
     if (entiyTypeCleaned === 'CanvasModelImage' || entiyTypeCleaned === 'CanvasModelBlock' || entiyTypeCleaned === 'CanvasModelSticky' || entiyTypeCleaned === 'SketchModelSticky' || entiyTypeCleaned === 'SketchModelActor') {
@@ -86,28 +89,25 @@ export class DiagramRenderer {
           })
         }
       }
-      const textPosition = child.Element.getAttribute('textPosition');
-      switch (textPosition) {
-        case '0': div.classList.add('top'); break;
-        case '1': div.classList.add('middle'); break;
-        case '2': div.classList.add('bottom'); break;
-      }
-      const textAlignment = child.Element.getAttribute('textAlignment');
-      switch (textAlignment) {
-        case '1': div.classList.add('left'); break;
-        case '2': div.classList.add('center'); break;
-        case '4': div.classList.add('right'); break;
-      }
-      const rect = e.querySelector(':scope>rect');
-      const borderColor = child.Element.getAttribute('borderColor');
-      if (borderColor) {
-        rect.setAttribute('stroke', borderColor);
-      }
-      const fillColor = child.Element.getAttribute('fillColor');
-      if (fillColor) {
-        rect.setAttribute('fill', fillColor);
-      }
     }
+    const textPosition = child.Element.getAttribute('textPosition');
+    switch (textPosition) {
+      case '0': div.classList.add('top'); break;
+      case '1': div.classList.add('middle'); break;
+      case '2': div.classList.add('bottom'); break;
+    }
+    const textAlignment = child.Element.getAttribute('textAlignment');
+    switch (textAlignment) {
+      case '1': div.classList.add('left'); break;
+      case '2': div.classList.add('center'); break;
+      case '4': div.classList.add('right'); break;
+    }
+    const rect = e.querySelector(':scope>rect');
+    const borderColor = child.Element.getAttribute('borderColor');
+    if (borderColor) {
+      rect.setAttribute('stroke', borderColor);
+    }
+
     e.setAttribute('transform', `translate(${child.bounds.x}, ${child.bounds.y})`);
     e.setAttribute('id', child.Id.toString());
     if (div != null) {
@@ -124,13 +124,40 @@ export class DiagramRenderer {
     addDocumentation();
 
     let style = '';
-    if (child.FillColor)
-      style += 'fill: ' + child.FillColor + ' ';
+    if (child.fillColor)
+      style += 'fill: ' + child.fillColor + ' ';
     if (style !== '') {
       const toStyle = Array.from(e.children)
         .filter(n => n.nodeName == 'rect' || n.nodeName == 'path');
-      toStyle.forEach(se => se.setAttribute('style', style));
+      toStyle.forEach(se => se.setAttribute('style', style.trimEnd()));
     }
+    style = '';
+    if (child.font) {
+      const fontData = child.font.split('|');
+      const fontName = fontData[1];
+      const fontSize = fontData[2];
+      const fontStyle = parseInt(fontData[3]);  //1=bold,2=italic, 4=underline, 8=strikeout
+
+      style = 'font: '
+      if (fontStyle & 1)
+        style += 'bold ';
+      if (fontStyle & 2)
+        style += 'italic ';
+      style += `${fontSize}pt ${fontName} `;
+
+      const decoration = []
+      if (fontStyle & 4)
+        decoration.push('underline');
+      if (fontStyle & 8)
+        decoration.push('line-through');
+      if (decoration.length > 1)
+        style += `font-decoration: ${decoration.join(' ')} `;
+      style = style.trimEnd() + ';';
+    }
+    if (child.fontColor) 
+      style += `color: ${child.fontColor} `;
+    if (div)
+      div.setAttribute('style', style.trimEnd());
 
     parent.append(e);
 
@@ -171,7 +198,10 @@ export class DiagramRenderer {
             const relationEntity = this.project.getById(sourceConnection.RelationShipId);
             this.addRelation(coords, sourceConnection, relationEntity);
           }
-        }
+          this.sourceConnectionMiddlePoints.set(sourceConnection.Id,
+            coords.length % 2 === 1 ? coords[(coords.length - 1) / 2] :
+              coords[coords.length / 2 - 1].add(coords[coords.length / 2]).multiply(0.5));
+      }
         else
           connectionsNext.push(sourceConnection);
       }
@@ -201,9 +231,6 @@ export class DiagramRenderer {
     DiagramRenderer.addConnectionText(editPointGroup, sourceConnection, coords);
     DiagramRenderer.addDragPoints(editPointGroup, coords);
 
-    this.sourceConnectionMiddlePoints.set(sourceConnection.Id,
-      coords.length % 2 === 1 ? coords[(coords.length - 1) / 2] :
-        coords[coords.length / 2 - 1].add(coords[coords.length / 2]).multiply(0.5));
   }
 
   static addDragPoints(group: Element, coords: ElementPos[]) {

@@ -219,8 +219,10 @@ export class DiagramEditor {
   private getOffsetFromContent(element: SVGGElement): {x: number, y: number} {
     let elementOffsetX = 0;
     let elementOffsetY = 0;
-    while (element !== this.contentElement) {
+    for (;;) {
       const transform = element.transform.baseVal.consolidate();
+      if (!transform)
+        break;
       elementOffsetX += transform.matrix.e;
       elementOffsetY += transform.matrix.f;
       element = element.parentElement as unknown as SVGGElement;
@@ -384,7 +386,7 @@ export class DiagramEditor {
       const element = this.svg.getElementById(move.elementId) as SVGElement
       if (element.parentElement.id != move.parentIdNew) {
         element.remove();
-        const newParent = this.svg.getElementById(move.parentIdNew ?? 'Content') as SVGElement;
+        const newParent = this.svg.getElementById(move.parentIdNew ?? 'content') as SVGElement;
         newParent.appendChild(element);
       }
       this.selectedElement.setAttributeNS(null, 'transform', `translate(${move.positionNew.x}, ${move.positionNew.y})`);

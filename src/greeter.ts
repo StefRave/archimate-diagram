@@ -245,7 +245,10 @@ export class ArchiDiagramChild extends ArchiDiagramObject {
     public EntityType: string;
     public ElementId: string;
     private _bounds: ElementBounds;
-    public FillColor: string;
+    public fillColor: string;
+    public fontColor: string;
+    public font: string; // see eclipse/swt/graphics/FontData.java toString
+    public figureType: FigureType;
 
     public get parent(): ArchiDiagramChild {
       return this._parent;
@@ -284,6 +287,7 @@ export class ArchiDiagramChild extends ArchiDiagramObject {
         this.ElementId = child.getAttribute('archimateElement') ??
             child.getAttribute('model') ??
             archiId(child.getElementsByClassName('archimateElement')[0]);
+        this.figureType = parseInt(child.getAttribute('type') ?? '0');
 
         const bounds = child.getElementsByTagName('bounds')[0];
         this._bounds = new ElementBounds(
@@ -291,7 +295,9 @@ export class ArchiDiagramChild extends ArchiDiagramObject {
             parseFloat(bounds.getAttribute('y') ?? '0'),
             parseFloat(bounds.getAttribute('width') ?? '165'),
             parseFloat(bounds.getAttribute('height') ?? '58'));
-        this.FillColor = child.getAttribute('fillColor');
+        this.fillColor = child.getAttribute('fillColor');
+        this.fontColor = child.getAttribute('fontColor');
+        this.font = child.getAttribute('font');
     }
 
     changeElementParent(parentElement: ArchiDiagramChild) {
@@ -330,13 +336,17 @@ export class ArchiDiagramChild extends ArchiDiagramObject {
     }
 }
 
+export enum FigureType {
+  Square = 0,
+  Figure = 1,
+}
 export class ArchiSourceConnection extends ArchiDiagramObject {
     TargetId: string;
     RelationShipId: string;
     BendPoints: ElementPos[];
     LineWidth: string;
     LineColor: string;
-    FillColor: string;
+    fillColor: string;
     name: string;
     Source: ArchiDiagramObject;
 

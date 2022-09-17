@@ -7,11 +7,11 @@
 		"sourceMap": true,
 		"noImplicitAny": true,
 		"module": "commonjs",
-		"target": "es2015",
+		"target": "ES2017",
 		"declaration": false,
 		"allowSyntheticDefaultImports": true,
 		"esModuleInterop": true,
-		"lib": [ "es2019", "DOM" ],
+		"lib": [ "es2021", "DOM" ],
 		"baseUrl": "src"
 	},
 	"include": [
