@@ -13,7 +13,8 @@ describe('Greeter', () => {
       svgTarget.id = 'svgTarget';
       document.body.appendChild(svgTarget);
 
-      const project = await ArchimateProjectStorage.GetDefaultProject();
+      const projectData = await ArchimateProjectStorage.GetDefaultProjectData();
+      const project = await ArchimateProjectStorage.GetProjectFromArrayBuffer(projectData);
       const diagram  = project.diagrams[0];
       const renderer = new DiagramRenderer(project, diagram, DiagramTemplate.getFromDrawing())
       const svg = renderer.buildSvg();

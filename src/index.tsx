@@ -1,3 +1,4 @@
+/// <reference types="vite/client" />
 import { DiagramEditor } from './diagram-editor';
 import { DiagramTemplate } from './diagram-template';
 import { DiagramRenderer } from './diagram-renderer';
@@ -7,8 +8,10 @@ import './index.scss';
 import Split from 'split-grid'
 import { render, h } from 'preact';
 import { ArchiEntityTree } from './ArchiEntityTree';
+import { Base64 } from './util/base64';
 
-const my: any = (window as any).my = {
+const w = window as any;
+const my: any = w.my = {
   uploadFile: uploadFile,
   save: save,
   downloadSvg: downloadSvg,
@@ -28,7 +31,15 @@ const diagramTemplate = DiagramTemplate.getFromDrawing();
 let diagramEditor: DiagramEditor = null;
 
 async function onDocumentLoad() {
-  const project = await ArchimateProjectStorage.GetDefaultProject();
+  let projectData: ArrayBuffer;
+  const lastProjectBase64 = window.localStorage.getItem('lastProject');
+  if (lastProjectBase64)
+    projectData = Base64.toArrayBuffer(lastProjectBase64);
+  else
+    projectData = await ArchimateProjectStorage.GetDefaultProjectData();
+  
+  const project = await ArchimateProjectStorage.GetProjectFromArrayBuffer(projectData);
+
   const hash = window.location.hash.slice(1);
   const diagram = parseInt(hash) ? project.diagrams[parseInt(hash)] :
     project.diagrams.filter(d => d.name === hash)[0] ?? project.diagrams[0];
@@ -92,6 +103,10 @@ async function uploadFile() {
     reader.onload = async function () {
       const project = await ArchimateProjectStorage.GetProjectFromArrayBuffer(reader.result as ArrayBuffer);
       activateLoadedProject(project, project.diagrams[0]);
+
+      const isDev = import.meta.env.MODE === 'development';
+      if (isDev)
+        window.localStorage.setItem('lastProject', Base64.fromUint8Array(new Uint8Array(reader.result as ArrayBuffer)));
     };
     reader.onerror = function () {
     console.log(reader.error);

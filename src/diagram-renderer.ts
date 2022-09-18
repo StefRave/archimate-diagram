@@ -1,5 +1,6 @@
 import { ArchimateProject, ArchiDiagram, ArchiDiagramChild, ElementPos, ArchiDiagramObject, ArchiEntity, ArchiSourceConnection } from './greeter';
 import { DiagramTemplate } from './diagram-template';
+import { Base64 } from './util/base64';
 
 export class DiagramRenderer {
   public readonly svgDocument: Document;
@@ -71,7 +72,7 @@ export class DiagramRenderer {
         image.setAttribute('href', '');
         if (imagePath) {
           this.project.getImage(imagePath).then((imageData) => {
-            const base64String = btoa(Uint8ToString(imageData));
+            const base64String = Base64.fromUint8Array(imageData);
             const fileExtension = imagePath.split('.').pop();
     
             image.setAttribute('href', `data:image/${fileExtension};base64, ${base64String}`);
@@ -79,16 +80,7 @@ export class DiagramRenderer {
             if (alpha) {
               image.setAttribute('opacity', `${Number(alpha) / 255}`);
             }
-
-            function Uint8ToString(u8a: Uint8Array){ // https://stackoverflow.com/a/12713326
-              const CHUNK_SZ = 0x8000;
-              const c = [];
-              for (let i = 0; i < u8a.length; i+=CHUNK_SZ) {
-                c.push(String.fromCharCode.apply(null, u8a.subarray(i, i+CHUNK_SZ)));
-              }
-              return c.join("");
-            }
-          })
+          });
         }
       }
     }

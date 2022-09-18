@@ -3,10 +3,9 @@ import JSZip from 'jszip';
 import Sequence, {asSequence} from 'sequency';
 import archisuranceSource from './Archisurance.archimate'
 export class ArchimateProjectStorage {
-    public static async GetDefaultProject(): Promise<ArchimateProject> {
+    public static async GetDefaultProjectData(): Promise<ArrayBuffer> {
         const response = await fetch(archisuranceSource);
-        const data = await response.arrayBuffer();
-        return ArchimateProjectStorage.GetProjectFromArrayBuffer(data);
+        return response.arrayBuffer();
     }
 
     public static async GetProjectFromArrayBuffer(file: ArrayBuffer): Promise<ArchimateProject> {
@@ -258,7 +257,7 @@ export class ArchiDiagramChild extends ArchiDiagramObject {
       this.ElementId = newId;
       if (this.Element.getAttribute('archimateElement') == null)
         throw new Error("archimateElement attribute exprected");
-        this.Element.setAttribute('archimateElement', newId); 
+      this.Element.setAttribute('archimateElement', newId); 
     }
 
     resetCache() {
