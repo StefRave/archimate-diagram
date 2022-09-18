@@ -126,6 +126,10 @@
       padding: 0px 0px 2px 0px;
     }
 
+    g.element>foreignObject>div {
+      padding: 2px;
+    }
+
     g.element>foreignObject div {
       display: flex;
       text-align: center;
@@ -133,7 +137,6 @@
       width: 100%;
       flex-wrap: wrap;
       flex-direction: column;
-      padding: 2px;
       box-sizing: border-box;
       /* background-color: #7779; */
       white-space: normal;
@@ -143,6 +146,7 @@
       hyphens: auto;
       text-overflow: ellipse;
       overflow: hidden;
+      line-height: 1.2em;
     }
     g.element>foreignObject>div>div.right {
       text-align: right !important;
@@ -166,10 +170,9 @@
     g.element>foreignObject>div>div:first-child {
       margin-bottom: auto;
       /* Make it push flex items to the center */
-      line-height: 1.2em;
     }
 
-    g.element>foreignObject:last-child>div>div:first-child {
+    g.element:not(.note)>foreignObject:last-child>div>div:first-child {
       margin-top: auto;
       /* Make it push flex items to the center */
     }
@@ -186,6 +189,7 @@
 
     g.element>foreignObject div:focus {
       pointer-events: all;
+      display: block;
     }
 
     g.element.group>foreignObject div {
@@ -197,9 +201,9 @@
     g.element.note>foreignObject div {
       text-align: left;
       align-items: flex-start;
-      margin: 0px;
+      margin-top: 0px;
       white-space: pre-wrap;
-      height: 100%;
+      margin-bottom: auto;
     }
 
     [contenteditable="true"]:active,
@@ -356,7 +360,7 @@
   <defs>
     <!-- https://css-tricks.com/use-and-reuse-everything-in-svg-even-animations/ -->
     <g id="ActorIcon">
-      <path d="M0-2 0 2M-4 0 4 0M-3 7 0 2M0 2 3 7M0-2A1 1 0 000-7 1 1 0 000-2" />
+      <path d="m0-2 0 4m-4-2.5 8 0m-7 7.5 3-5m0 0 3 5m-3-9a1 1 0 000-5 1 1 0 000 5" />
     </g>
     <g id="RoleIcon">
       <path d="m-4.5 -5c-3.3 0 -3.3 10 0 10 h9 c3.3 0 3.3 -10 0 -10z m9 0 c-3.3 0-3.3 10 0 10" />
@@ -796,7 +800,10 @@
       <path fill="white" d="M0,60 v-60 h168 v52 l-8 8  z" />
       <foreignObject width="168px" height="60px">
         <div xmlns="http://www.w3.org/1999/xhtml" style="width: 168px; height: 60px">
-          <div>Note</div>
+          <div contenteditable="true">
+            <div>Note</div>
+            <div>multi line</div>
+          </div>
         </div>
       </foreignObject>
     </g>
@@ -1145,18 +1152,18 @@
     AAAFCAYAAACNbyblAAAAHElEQVQI12P4//8/w38GIAXDIBKE0DHxgljNBAAO
         9TXL0Y4OHwAAAABJRU5ErkJggg==" />
     </g>
-    <g id="CanvasModelSticky" transform="translate(732, 598)" class="canvas element">
+    <g id="CanvasModelSticky" transform="translate(732, 598)" class="canvas note element">
       <rect width="168px" height="60px" stroke="none" fill="#fff" />
       <image href="data:image/png;base64, iVBORw0KGgoAAAANSUhEUgAAAAUA
     AAAFCAYAAACNbyblAAAAHElEQVQI12P4//8/w38GIAXDIBKE0DHxgljNBAAO
         9TXL0Y4OHwAAAABJRU5ErkJggg==" />
       <foreignObject width="168px" height="60px">
         <div xmlns="http://www.w3.org/1999/xhtml" style="width: 168; height: 60px">
-          <div>CanvasModelBlock</div>
+          <div>CanvasModelSticky</div>
         </div>
       </foreignObject>
     </g>
-    <g id="CanvasModelBlock" transform="translate(732, 528)" class="canvas element">
+    <g id="CanvasModelBlock" transform="translate(732, 528)" class="canvas note element">
       <rect width="168px" height="60px" stroke="none" fill="#fff" />
       <image href="data:image/png;base64, iVBORw0KGgoAAAANSUhEUgAAAAUA
     AAAFCAYAAACNbyblAAAAHElEQVQI12P4//8/w38GIAXDIBKE0DHxgljNBAAO

@@ -24,7 +24,6 @@ export class DiagramEditor {
     this.svg.addEventListener('pointerdown', (evt) => this.onPointerDown(evt));
     this.svg.addEventListener('pointermove', (evt) => this.onPointerMove(evt));
     this.svg.addEventListener('pointerup', () => this.onPointerUp());
-    // this.svg.addEventListener('pointerleave', (evt) => this.endDrag(evt));
     this.svg.addEventListener('focusout', (evt) => {
       const focusedElement = this.getElementFromChild(evt.target as Element);
       if (focusedElement && this.selectedElement == null)
@@ -33,7 +32,6 @@ export class DiagramEditor {
       sel.removeAllRanges();
     });
 
-    // todo: This event needs to be cleaned op when a the DiagramEditor cleaned up
     this.svg.ownerDocument.addEventListener('keydown', this.keyDownFunction);
   }
 
@@ -44,29 +42,7 @@ export class DiagramEditor {
   private onKeyDown(evt: KeyboardEvent) {
     const target = evt.target as HTMLElement;
     const targetElement = target.closest('.element');
-    if (evt.key === 'Enter' && targetElement.classList.contains('note')) {
-      evt.preventDefault();
-      const sel = window.getSelection();
-      const atEnd = sel.focusOffset == sel.anchorNode.textContent.length;
-      const textContentCount = sel.focusNode.parentNode.childNodes.length;
-      document.execCommand('insertHTML', false, '\n');
-      if (textContentCount < sel.focusNode.parentNode.childNodes.length) {
-        // firefox seems to sometimes create a next text element, and not move the cursor
-        // If this happens, move the cursor to the beginning of the next text element
-        const range = document.createRange();
-        
-        range.setStart(window.getSelection().focusNode.nextSibling, 0);
-        range.collapse(true);
-        
-        sel.removeAllRanges();
-        sel.addRange(range);
-      }
-      else if(atEnd && sel.focusOffset != sel.anchorNode.textContent.length) {
-        document.execCommand('insertHTML', false, '\n');
-      }
-      return false; 
-    }
-    else if (evt.key == 'Enter' || evt.key == 'Escape') {
+    if ((evt.key == 'Enter' && !targetElement.classList.contains('note')) || evt.key == 'Escape') {
       (evt.target as HTMLElement).blur();
     }
     else if (evt.key == 'F2') {
@@ -84,8 +60,6 @@ export class DiagramEditor {
 
   private onPointerDown(evt: PointerEvent) {
     const target = evt.target as SVGElement;
-    evt.preventDefault();
-    evt.stopImmediatePropagation();
     this.selectedElement = target.closest('.element');
     const controlKeyDown = evt.ctrlKey;
     this.activeDragging = false;
@@ -94,6 +68,9 @@ export class DiagramEditor {
       this.editElementText(this.selectedElement);
       return;
     }
+    evt.preventDefault();
+    evt.stopImmediatePropagation();
+
     this.startDragMousePosition = this.getMousePosition(evt);
     this.startDragMouseOffset = {x: 0, y: 0}
 
@@ -196,7 +173,14 @@ export class DiagramEditor {
   }
 
   private editElementText(element: Element) {
+    const s = window.getSelection();
+    if (s.focusNode && this.selectedElement.contains(s.focusNode))
+       return;
+
     const toEdit: HTMLDivElement = element.querySelector(':scope>foreignObject>div>div');
+    if (!toEdit)
+      return;
+      
     const focusedElement = this.getElementFromChild(document.activeElement);
     if (focusedElement !== element) {
       setTimeout(function () {

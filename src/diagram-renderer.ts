@@ -50,18 +50,20 @@ export class DiagramRenderer {
       archiElement = new ArchiEntity();
       archiElement.entityType = child.EntityType;
       archiElement.name = child.Element.getAttribute('name');
-      if (archiElement.entityType === 'Note') {
-        let textContent = Array.from(child.Element.childNodes).filter(n => n.nodeName === 'content')[0]?.textContent ?? "";
-        textContent = textContent
-          .replace(/[\uf0b7\uf0a7]/g, '•') // TODO: wingdings to unicode: http://www.alanwood.net/demos/wingdings.html
-          .replace(/\r/g, '');
-        archiElement.name = textContent;
-      }
-      archiElement.documentation = child.Element.getAttribute('documentation');
     }
     const e = this.template.getElementByType(archiElement, child);
     const div = e.querySelector(':scope>foreignObject>div>div');
     const entiyTypeCleaned = child.EntityType.split(':').pop();
+
+    if (e.classList.contains('note')) {
+      let textContent = child.Element.querySelector(':scope>content')?.textContent ?? "";
+      textContent = textContent
+        .replace(/[\uf0b7\uf0a7]/g, '•') // TODO: wingdings to unicode: http://www.alanwood.net/demos/wingdings.html
+        .replace(/\r/g, '');
+      archiElement.name = textContent;
+    }
+    archiElement.documentation = child.Element.getAttribute('documentation');
+
     if (entiyTypeCleaned === 'CanvasModelImage' || entiyTypeCleaned === 'CanvasModelBlock' || entiyTypeCleaned === 'CanvasModelSticky' || entiyTypeCleaned === 'SketchModelSticky' || entiyTypeCleaned === 'SketchModelActor') {
       const image = e.querySelector('image');
       if (image) {
@@ -111,14 +113,21 @@ export class DiagramRenderer {
     e.setAttribute('transform', `translate(${child.bounds.x}, ${child.bounds.y})`);
     e.setAttribute('id', child.Id.toString());
     if (div != null) {
-      div.textContent = archiElement.name ?? child.Element.querySelector(':scope>content')?.textContent;
       div.setAttribute('contenteditable', 'true');
 
       if (!e.classList.contains('group') && !e.classList.contains('note')) {
+        div.textContent = archiElement.name;
         const d = e.ownerDocument.createElementNS(div.namespaceURI, 'div');
         d.textContent = archiElement.entityType;
         d.setAttribute('class', 'elementType');
         div.parentNode.appendChild(d);
+      } else {
+        div.textContent = '';
+        archiElement.name.split('\n').forEach(t => {
+          const d = e.ownerDocument.createElementNS(div.namespaceURI, 'div');
+          d.textContent = t;
+          div.appendChild(d);
+        });
       }
     }
     addDocumentation();
@@ -321,7 +330,7 @@ export class DiagramRenderer {
         markerEnd = 'Closed';
       if (type & 16)
         markerEnd = 'Hollow'
-       if (type & 64)
+      if (type & 64)
         markerEnd = 'Open';
       if (type & 8)
         markerStart = 'Closed';

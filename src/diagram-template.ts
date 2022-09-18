@@ -1,4 +1,4 @@
-import { ArchiDiagramChild, ArchiEntity, ElementBounds } from './greeter';
+import { ArchiDiagramChild, ArchiEntity } from './greeter';
 import svgSource from './archimate.svg?raw';
 
 
@@ -94,7 +94,7 @@ export class DiagramTemplate {
         e.removeChild(e.children[0]);
         e.removeChild(e.children[0]);
       }
-    } else if (child.figureType == 1) {
+    } else if (child.figureType == 1 || archiElement.entityType == 'SketchModelActor') {
       const s = e.querySelector(':scope>use');
       if (s) {
         while (e.children[0].tagName != 'use')
@@ -122,7 +122,7 @@ export class DiagramTemplate {
     }
     if (typeName == 'SketchModelActor')
       return cloneFromTemplate('BusinessActor');
-   if (typeName == 'SketchModelSticky')
+    if (typeName == 'SketchModelSticky')
       return cloneFromTemplate('CanvasModelSticky');
     
     return cloneFromTemplate('todo');
