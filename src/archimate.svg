@@ -71,7 +71,7 @@
       stroke-width: 0.5;
       fill: none;
     }
-    #content g.element>use:not(.symbol) {
+    #content g.element>use:not(.symbol):not(.img) {
       transform: translate(-9px,9px);
     }
     
@@ -536,6 +536,9 @@
     <g id="ValueIcon">
       <ellipse cx="-1" cy="0" rx="8" ry="4" />
     </g>
+    <g id="imageDefs">
+      <image id="imgSample" href="data:image/png;base64, iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12P4//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg==" />
+    </g>
     <pattern id="smallGrid" width="12" height="12" patternUnits="userSpaceOnUse">
      <path d="M 12 0 L 0 0 0 12" fill="none" stroke="#ddd" stroke-width="1px" vector-effect="non-scaling-stroke" />
     </pattern>
@@ -798,6 +801,7 @@
 
     <g id="Note" transform="translate(372, 312)" class="note element">
       <path fill="white" d="M0,60 v-60 h168 v52 l-8 8  z" />
+      <use class="img" href="#imgSample" transform='matrix(1,0,0,1,0,0)' />
       <foreignObject width="168px" height="60px">
         <div xmlns="http://www.w3.org/1999/xhtml" style="width: 168px; height: 60px">
           <div contenteditable="true">
@@ -1148,15 +1152,11 @@
       </g>
     </g>
     <g id="CanvasModelImage" transform="translate(552, 528)" class="canvas element">
-      <image width="168px" height="60px" href="data:image/png;base64, iVBORw0KGgoAAAANSUhEUgAAAAUA
-    AAAFCAYAAACNbyblAAAAHElEQVQI12P4//8/w38GIAXDIBKE0DHxgljNBAAO
-        9TXL0Y4OHwAAAABJRU5ErkJggg==" />
+      <use class="img" href="#imgSample" transform='matrix(1,0,0,1,0,0)' />
     </g>
     <g id="CanvasModelSticky" transform="translate(732, 598)" class="canvas note element">
       <rect width="168px" height="60px" stroke="none" fill="#fff" />
-      <image href="data:image/png;base64, iVBORw0KGgoAAAANSUhEUgAAAAUA
-    AAAFCAYAAACNbyblAAAAHElEQVQI12P4//8/w38GIAXDIBKE0DHxgljNBAAO
-        9TXL0Y4OHwAAAABJRU5ErkJggg==" />
+      <use class="img" href="#imgSample" transform='matrix(1,0,0,1,0,0)' />
       <foreignObject width="168px" height="60px">
         <div xmlns="http://www.w3.org/1999/xhtml" style="width: 168; height: 60px">
           <div>CanvasModelSticky</div>
@@ -1165,9 +1165,7 @@
     </g>
     <g id="CanvasModelBlock" transform="translate(732, 528)" class="canvas note element">
       <rect width="168px" height="60px" stroke="none" fill="#fff" />
-      <image href="data:image/png;base64, iVBORw0KGgoAAAANSUhEUgAAAAUA
-    AAAFCAYAAACNbyblAAAAHElEQVQI12P4//8/w38GIAXDIBKE0DHxgljNBAAO
-        9TXL0Y4OHwAAAABJRU5ErkJggg==" />
+      <use class="img" href="#imgSample" transform='matrix(1,0,0,1,0,0)' />
       <foreignObject width="168px" height="60px">
         <div xmlns="http://www.w3.org/1999/xhtml" style="width: 168; height: 60px">
           <div>CanvasModelBlock</div>

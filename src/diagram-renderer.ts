@@ -1,19 +1,24 @@
 import { ArchimateProject, ArchiDiagram, ArchiDiagramChild, ElementPos, ArchiDiagramObject, ArchiEntity, ArchiSourceConnection } from './greeter';
 import { DiagramTemplate } from './diagram-template';
-import { Base64 } from './util/base64';
+import { DiagramImageCache } from './diagram-image-cache';
 
+/**
+ *  
+ */
 export class DiagramRenderer {
-  public readonly svgDocument: Document;
+  public readonly svgDocument: SVGSVGElement;
   public readonly svgContent: Element;
   private readonly sourceConnectionMiddlePoints: Map<string, ElementPos>;
+  private imageCache: DiagramImageCache;
   constructor(public readonly project: ArchimateProject, public readonly diagram: ArchiDiagram, public readonly template: DiagramTemplate) {
     this.svgDocument = this.template.getEmptySvg();
     this.svgContent = this.svgDocument.getElementById('content');
 
     this.sourceConnectionMiddlePoints = new Map<string, ElementPos>();
+    this.imageCache = new DiagramImageCache(project, this.svgDocument.getElementById('imageDefs') as SVGGElement);
   }
 
-  public buildSvg(): Document {
+  public buildSvg(): SVGSVGElement {
     const diagramGroup = this.svgContent.ownerDocument.createElementNS(this.svgContent.namespaceURI, 'g');
     diagramGroup.id = this.diagram.Id;
     this.svgContent.appendChild(diagramGroup);
@@ -65,25 +70,47 @@ export class DiagramRenderer {
     }
     archiElement.documentation = child.Element.getAttribute('documentation');
 
-    if (entiyTypeCleaned === 'CanvasModelImage' || entiyTypeCleaned === 'CanvasModelBlock' || entiyTypeCleaned === 'CanvasModelSticky' || entiyTypeCleaned === 'SketchModelSticky' || entiyTypeCleaned === 'SketchModelActor') {
-      const image = e.querySelector('image');
-      if (image) {
-        const imagePath = child.Element.getAttribute('imagePath');
-        image.setAttribute('href', '');
-        if (imagePath) {
-          this.project.getImage(imagePath).then((imageData) => {
-            const base64String = Base64.fromUint8Array(imageData);
-            const fileExtension = imagePath.split('.').pop();
-    
-            image.setAttribute('href', `data:image/${fileExtension};base64, ${base64String}`);
-            const alpha = child.Element.getAttribute('alpha');
-            if (alpha) {
-              image.setAttribute('opacity', `${Number(alpha) / 255}`);
+    const imageUse = e.querySelector(':scope>use.img');
+    if (imageUse) {
+      const imagePath = child.Element.getAttribute('imagePath');
+      imageUse.setAttribute('href', '');
+      if (imagePath) {
+        this.imageCache.getImage(imagePath).then(imageInfo => {
+  
+          imageUse.setAttribute('href', '#' + imageInfo.defsId);
+
+          const imagePosition = parseInt(child.Element.getAttribute('imagePosition') ??
+            (entiyTypeCleaned === 'CanvasModelImage' ? '9' : '2'));
+          
+          if (imagePosition === 9) // FILL
+            imageUse.setAttribute('transform', `matrix(${child.bounds.width/imageInfo.width},0,0,${child.bounds.height/imageInfo.height},0,0)`);
+          else
+          {
+            // TOP_LEFT = 0, TOP_CENTRE = 1, TOP_RIGHT = 2, MIDDLE_LEFT = 3, MIDDLE_CENTRE = 4, MIDDLE_RIGHT = 5, BOTTOM_LEFT = 6, BOTTOM_CENTRE = 7, BOTTOM_RIGHT = 8
+            let imageX = (child.bounds.width - imageInfo.width); 
+            let imageY = (child.bounds.height - imageInfo.height); 
+            switch(imagePosition % 3)
+            {
+              case 0: imageX = 0; break;
+              case 1: imageX /= 2; break;
+              default: break;
             }
-          });
-        }
+            switch(Math.floor(imagePosition / 3))
+            {
+              case 0: imageY = 0; break;
+              case 1: imageY /= 2; break;
+              default: break;
+            }
+            imageUse.setAttribute('transform', `matrix(1,0,0,1,${imageX},${imageY})`);
+          }
+          const alpha = child.Element.getAttribute('alpha');
+          if (alpha) {
+            imageUse.setAttribute('opacity', `${Number(alpha) / 255}`);
+          }
+        });
       }
     }
+    
     const textPosition = child.Element.getAttribute('textPosition');
     switch (textPosition) {
       case '0': div.classList.add('top'); break;
@@ -117,7 +144,10 @@ export class DiagramRenderer {
         div.textContent = '';
         archiElement.name.split('\n').forEach(t => {
           const d = e.ownerDocument.createElementNS(div.namespaceURI, 'div');
-          d.textContent = t;
+          if (t != '')
+            d.textContent = t;
+          else
+            d.appendChild(e.ownerDocument.createElement('br'));
           div.appendChild(d);
         });
       }
@@ -157,7 +187,7 @@ export class DiagramRenderer {
     }
     if (child.fontColor) 
       style += `color: ${child.fontColor} `;
-    if (div)
+    if (div && style != '')
       div.setAttribute('style', style.trimEnd());
 
     parent.append(e);

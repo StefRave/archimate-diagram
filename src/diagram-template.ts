@@ -4,11 +4,11 @@ import svgSource from './archimate.svg?raw';
 
 export class DiagramTemplate {
   private elementByType: Map<string, Element>;
-  private templateDoc: Document;
+  private templateDoc: SVGSVGElement;
   public elementSelection: SVGGElement;
 
-  public getEmptySvg(): Document {
-    return this.templateDoc.cloneNode(true) as Document;
+  public getEmptySvg(): SVGSVGElement {
+    return this.templateDoc.cloneNode(true) as SVGSVGElement;
   }
 
   public getElementSelection(width: number, height: number): SVGGElement {
@@ -138,7 +138,7 @@ export class DiagramTemplate {
 
     const parser = new DOMParser();
 
-    result.templateDoc = parser.parseFromString(svgSource, 'application/xml');
+    result.templateDoc = parser.parseFromString(svgSource, 'application/xml') as unknown as SVGSVGElement;
 
     const content = result.templateDoc.getElementById('content');
     result.elementSelection = content.querySelector('g#ElementSelected>g.selection');
@@ -146,11 +146,10 @@ export class DiagramTemplate {
     const archiElements = Array.from(content.querySelectorAll('g.element'));
     result.elementByType = new Map<string, Element>(archiElements.map(e => [e.id, e]));
 
-    while (content.firstChild)
-      content.removeChild(content.firstChild);
-
-    const icons = result.templateDoc.getElementById("icons");
-    icons.remove();
+    content.replaceChildren();
+    result.templateDoc.getElementById('imageDefs').replaceChildren();
+    result.templateDoc.getElementById("icons").remove();
+    
     return result;
   }
 }
