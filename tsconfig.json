@@ -12,11 +12,11 @@
 		"declaration": false,
 		"allowSyntheticDefaultImports": true,
 		"esModuleInterop": true,
-		"lib": [ "es2021", "DOM" ],
-		"baseUrl": "src"
+		"lib": [ "es2021", "DOM" ]
 	},
 	"include": [
 		"src/**/*",
     "custom.d.ts"
-	]
+	],
+  "exclude": ["node_modules", "dist"]
 }

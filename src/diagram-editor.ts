@@ -1,5 +1,6 @@
 import { ArchiDiagram, ArchiDiagramChild, ArchimateProject, ArchiSourceConnection, ElementBounds, ElementPos } from './greeter';
 import { DiagramRenderer } from './diagram-renderer';
+import { IDiagramChange, IXy } from './diagram-change';
 
 export class DiagramEditor {
   private readonly contentElement: SVGGElement;
@@ -13,10 +14,12 @@ export class DiagramEditor {
   private activeChangeAction: ChangeAction; 
   private activeChangeResizeCorner: string;
   private activeDragging: boolean;
+  private undoManager: UndoManager;
   private keyDownFunction = (evt: KeyboardEvent) => this.onKeyDown(evt);
 
   constructor(private svg: SVGSVGElement, private project: ArchimateProject, private diagram: ArchiDiagram, private renderer: DiagramRenderer) {
     this.contentElement = svg.querySelector('svg>g');
+    this.undoManager = new UndoManager(project);
   }
 
   public makeDraggable() {
@@ -81,6 +84,7 @@ export class DiagramEditor {
         this.activeChangeResizeCorner = target.classList.item(0);
         this.activeChangeAction = ChangeAction.Resize;
         this.activeChange = <IDiagramChange>{
+          diagramId: this.diagram.Id,
           move: {
             elementId: this.selectedElement.id,
             positionNew: { x: diagramElement.bounds.x, y: diagramElement.bounds.y, width: diagramElement.bounds.width, height: diagramElement.bounds.height },
@@ -94,6 +98,7 @@ export class DiagramEditor {
         this.activeChangeAction = ChangeAction.Move;
         this.startDragMouseOffset = { x: this.startDragMousePosition.x - diagramElement.AbsolutePosition.x, y: this.startDragMousePosition.y - diagramElement.AbsolutePosition.y }
         this.activeChange = <IDiagramChange>{
+          diagramId: this.diagram.Id,
           move: {
             elementId: this.selectedElement.id,
             positionNew: { x: diagramElement.AbsolutePosition.x, y: diagramElement.AbsolutePosition.y, width: diagramElement.bounds.width, height: diagramElement.bounds.height },
@@ -117,6 +122,7 @@ export class DiagramEditor {
         const sourceConnection = this.diagram.GetDiagramObjectById(target.parentElement.id) as ArchiSourceConnection;
         const bendPointsOld = sourceConnection.BendPoints.map(bp => <IXy>{ x: bp.x, y: bp.y});
         this.activeChange = <IDiagramChange>{
+          diagramId: this.diagram.Id,
           connection: {
             index: index,
             sourceConnectionId: sourceConnection.Id,
@@ -238,7 +244,7 @@ export class DiagramEditor {
       this.activeChange.move.positionNew.x = newPosition.x;
       this.activeChange.move.positionNew.y = newPosition.y;
 
-      this.doDiagramChange(this.activeChange);
+      this.undoManager.doDiagramChange(this.activeChange);
       this.doSvgChange(this.activeChange);
       this.setDraggingAttributes();
       this.setDropTargetAttributes();
@@ -258,7 +264,7 @@ export class DiagramEditor {
       if (this.activeChangeResizeCorner.indexOf('s') >= 0) {
         this.activeChange.move.positionNew.height = this.activeChange.move.positionOld.height + delta.y;
       }
-      this.doDiagramChange(this.activeChange);
+      this.undoManager.doDiagramChange(this.activeChange);
       this.doSvgChange(this.activeChange);
       this.setDraggingAttributes();
     }
@@ -300,7 +306,7 @@ export class DiagramEditor {
         }
       }
 
-      this.doDiagramChange(this.activeChange);
+      this.undoManager.doDiagramChange(this.activeChange);
       this.doSvgChange(this.activeChange);
       this.doRelationShipSelection(this.svg.getElementById(this.activeChange.connection.sourceConnectionId));
     }
@@ -318,7 +324,7 @@ export class DiagramEditor {
         this.activeChange.move.positionNew.y -= parentOffset.y;
       }
     }
-    this.doDiagramChange(this.activeChange);
+    this.undoManager.doDiagramChange(this.activeChange);
     this.doSvgChange(this.activeChange);
     if (this.activeChangeAction == ChangeAction.Connection) {
       this.doRelationShipSelection(this.svg.getElementById(this.activeChange.connection.sourceConnectionId));
@@ -402,26 +408,7 @@ export class DiagramEditor {
     }
   }
 
-  private doDiagramChange(diagramChange: IDiagramChange) {
-    if (diagramChange.move) {
-      const change = diagramChange.move;
-      const element = this.diagram.GetDiagramObjectById(change.elementId) as ArchiDiagramChild
-      const parentElement = change.parentIdNew  == this.diagram.Id ? null : this.diagram.GetDiagramObjectById(change.parentIdNew) as ArchiDiagramChild
 
-      if (element.parent != parentElement) {
-        if (parentElement != null)
-          element.changeElementParent(parentElement);
-        else
-          element.changeElementParentDiagram(this.diagram);
-      }
-      element.bounds = new ElementBounds(change.positionNew.x, change.positionNew.y, change.positionNew.width, change.positionNew.height);
-    }
-    if (diagramChange.connection) {
-      const change = diagramChange.connection;
-      const sourceConnection = this.diagram.GetDiagramObjectById(change.sourceConnectionId) as ArchiSourceConnection;
-      sourceConnection.BendPoints = change.bendPointsNew.map(xy => <ElementPos>{ x: xy.x, y: xy.y});
-    }
-  }
 
   private getMousePosition(evt: PointerEvent) {
     const CTM = this.svg.getScreenCTM();
@@ -432,39 +419,35 @@ export class DiagramEditor {
   }
 }
 
+class UndoManager {
+  constructor(public project: ArchimateProject) {
+  }
+
+  public doDiagramChange(diagramChange: IDiagramChange) {
+    const diagram = this.project.getById(diagramChange.diagramId) as ArchiDiagram;
+    if (diagramChange.move) {
+      const change = diagramChange.move;
+      const element = diagram.GetDiagramObjectById(change.elementId) as ArchiDiagramChild
+      const parentElement = change.parentIdNew  == diagram.Id ? null : diagram.GetDiagramObjectById(change.parentIdNew) as ArchiDiagramChild
+
+      if (element.parent != parentElement) {
+        if (parentElement != null)
+          element.changeElementParent(parentElement);
+        else
+          element.changeElementParentDiagram(diagram);
+      }
+      element.bounds = new ElementBounds(change.positionNew.x, change.positionNew.y, change.positionNew.width, change.positionNew.height);
+    }
+    if (diagramChange.connection) {
+      const change = diagramChange.connection;
+      const sourceConnection = diagram.GetDiagramObjectById(change.sourceConnectionId) as ArchiSourceConnection;
+      sourceConnection.BendPoints = change.bendPointsNew.map(xy => <ElementPos>{ x: xy.x, y: xy.y});
+    }
+  }
+}
+
 enum ChangeAction {
   Move,
   Resize,
   Connection,
-}
-interface IDiagramChange {
-  move: IDiagramChangeMove;
-  connection: IDiagramChangeConnection;
-}
-
-interface IDiagramChangeMove {
-  elementId: string;
-  positionNew: IPosSize;
-  positionOld: IPosSize;
-  parentIdNew: string;
-  parentIdOld: string;
-}
-
-interface IPosSize {
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-}
-
-interface IDiagramChangeConnection {
-  sourceConnectionId: string;
-  index: number;
-  bendPointsNew: IXy[];
-  bendPointsOld: IXy[];
-}
-
-interface IXy {
-  x: number,
-  y: number,
 }

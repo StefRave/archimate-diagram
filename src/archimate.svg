@@ -481,8 +481,8 @@
       <path d="m4 0 a 1 1 0 0 0 -10 0 q 0 3 5 10 q 5 -7 5 -10z" />
     </g>
     <g id="GapIcon">
-      <ellipse cx="-1" cy="0" rx="6" ry="6" />
-      <path d="m -10 -1.5 h 18 m -18 3 h 18" fill="none" />
+      <ellipse rx="6" ry="6" />
+      <path d="m -9 -1.5 h 18 m -18 3 h 18" fill="none" />
     </g>
     <g id="PlateauIcon">
       <path d="m-5 -3 h 12 m -14 3 h 12 m -14 3 h 12" fill="none" />
@@ -534,7 +534,7 @@
       <path d="m-8 -5 h14 v9 h-14 v-11 h6 v2" />
     </g>
     <g id="ValueIcon">
-      <ellipse cx="-1" cy="0" rx="8" ry="4" />
+      <ellipse rx="8" ry="4" />
     </g>
     <g id="imageDefs">
       <image id="imgSample" href="data:image/png;base64, iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12P4//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg==" />

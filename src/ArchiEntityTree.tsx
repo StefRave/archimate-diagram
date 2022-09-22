@@ -1,7 +1,8 @@
 import { Component, VNode, h, ComponentChild } from 'preact';
+import { ArchimateProject } from './greeter';
 
 export type ArchiEntityTreeProps = {
-    views: Element; // archi folder structure
+    project: ArchimateProject;
     active: string; // diagram id of the active diagram
     onDiagramSelected: (diagramId: string) => void; 
   }
@@ -18,7 +19,8 @@ export class ArchiEntityTree extends Component<ArchiEntityTreeProps> {
   }
 
   render(): ComponentChild {
-    return this.renderChildren(Array.from(this.props.views.children));
+    const views = this.props.project?.element?.querySelector('folder[name="Views"]');
+    return this.renderChildren(Array.from(views?.children ?? []));
   }
 
   renderChildren(children: Element[]) {
