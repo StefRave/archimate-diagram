@@ -150,9 +150,9 @@ export class ArchiEditor extends Component<ArchiEditorProps, ArchiEditorState> {
       &nbsp;
       <button onClick={() => this.downloadSvg()}>Download SVG</button>
       <button onClick={() => this.downloadPng()}>Download PNG</button>
-      &nbsp;
+      {/* &nbsp;
       <button>&#8630;</button>
-      <button>&#8631;</button>
+      <button>&#8631;</button> */}
 
     </p>
       <div class="grid">

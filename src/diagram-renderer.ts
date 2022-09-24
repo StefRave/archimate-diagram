@@ -7,12 +7,12 @@ import { DiagramImageCache } from './diagram-image-cache';
  */
 export class DiagramRenderer {
   public readonly svgDocument: SVGSVGElement;
-  public readonly svgContent: Element;
+  public readonly svgContent: SVGGElement;
   private readonly sourceConnectionMiddlePoints: Map<string, ElementPos>;
   private imageCache: DiagramImageCache;
   constructor(public readonly project: ArchimateProject, public readonly diagram: ArchiDiagram, public readonly template: DiagramTemplate) {
     this.svgDocument = this.template.getEmptySvg();
-    this.svgContent = this.svgDocument.getElementById('content');
+    this.svgContent = this.svgDocument.getElementById('content') as SVGGElement;
 
     this.sourceConnectionMiddlePoints = new Map<string, ElementPos>();
     this.imageCache = new DiagramImageCache(project, this.svgDocument.getElementById('imageDefs') as SVGGElement);
