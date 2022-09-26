@@ -7,8 +7,8 @@ import { DiagramTemplate } from './diagram-template';
 import { ArchiDiagram, ArchimateProject, ArchimateProjectStorage } from './greeter';
 import { Base64 } from './util/base64';
 
+// eslint-disable-next-line @typescript-eslint/ban-types
 export type ArchiEditorProps = {
-  dummy: string
 }
 export type ArchiEditorState = {
   project: ArchimateProject;

@@ -26,7 +26,7 @@ export class DiagramEditor {
     this.svg.addEventListener('pointermove', (evt) => this.onPointerMove(evt));
     this.svg.addEventListener('pointerup', (evt) => this.onPointerUp(evt));
     this.svg.addEventListener('focusout', (evt) => {
-      const focusedElement = this.getElementFromChild(evt.target as Element);
+      const focusedElement = this.getDiagramElement(evt.target as Element);
       if (focusedElement && this.selectedElement == null)
         this.lastElementClicked = null;
       const sel = window.getSelection();
@@ -50,6 +50,12 @@ export class DiagramEditor {
     else if (evt.key == 'F2') {
       const elmentToEdit = this.contentElement.querySelector(':scope g.lastSelection');
       this.editElementText(elmentToEdit);
+    }
+    else if (evt.key == 'z' && evt.ctrlKey) {
+      this.changeManager.undo();
+    }
+    else if (evt.key == 'y' && evt.ctrlKey) {
+      this.changeManager.redo();
     }
   }
 
@@ -131,7 +137,9 @@ export class DiagramEditor {
       if (this.changeManager.activeAction == ChangeAction.Move)
         this.editMoveEnd();
       const currentChange = this.changeManager.currentChange;
+      
       this.changeManager.finalizeChange();
+
       if (currentChange.action == ChangeAction.Connection) {
         this.doRelationShipSelection(this.svg.getElementById(currentChange.connection.sourceConnectionId));
       }
@@ -189,7 +197,7 @@ export class DiagramEditor {
     if (!toEdit)
       return;
       
-    const focusedElement = this.getElementFromChild(document.activeElement);
+    const focusedElement = this.getDiagramElement(document.activeElement);
     if (focusedElement !== element) {
       setTimeout(function () {
         toEdit.focus();
@@ -203,7 +211,7 @@ export class DiagramEditor {
     this.selectedElement = null;
   }
 
-  private getElementFromChild(element: Element) {
+  private getDiagramElement(element: Element) {
     while (element != null && !(element instanceof SVGGElement))
       element = element.parentElement;
     return element;
@@ -456,6 +464,8 @@ class DiagramChanger
 
 
 class ChangeManager {
+  private changeHistory: IDiagramChange[] = [];
+  private changeHistoryIndex = 0;
   private _currentChange: IDiagramChange;
   public get currentChange(): IDiagramChange { return this._currentChange; }
   public get isActive(): boolean { return !!this._currentChange; }
@@ -471,7 +481,8 @@ class ChangeManager {
     if (!this.isActive)
       return;
     const undoed = undoChange(this._currentChange);
-    this.finalizeChange(undoed);
+    this.doDiagramChange(undoed);
+    this._currentChange = null;
     this.diagramChanger.doSvgChange(undoed, true);
   }
 
@@ -485,14 +496,46 @@ class ChangeManager {
     this.diagramChanger.doSvgChange(change, false);
   }
 
+  cancelChange() {
+    this._currentChange = null;
+  }
+
   public finalizeChange(change: IDiagramChange = this.currentChange) {
     this.doDiagramChange(change);
     this._currentChange = null;
     this.diagramChanger.doSvgChange(change, true);
+    
+    this.changeHistory = this.changeHistory.slice(0, this.changeHistoryIndex);
+    this.changeHistory.push(change);
+    this.changeHistoryIndex++;
   }
 
-  cancelChange() {
+  public undo() {
+    if (this.isActive) {
+      this.undoActive();
+      return;
+    }
+    if (this.changeHistoryIndex == 0)
+      return;
+    this.changeHistoryIndex--;
+    const undoed = undoChange(this.changeHistory[this.changeHistoryIndex]);
+    this.doDiagramChange(undoed);
     this._currentChange = null;
+    this.diagramChanger.doSvgChange(undoed, true);
+  }
+
+  public redo() {
+    if (this.isActive) {
+      this.undoActive();
+      return;
+    }
+    if (this.changeHistoryIndex >= this.changeHistory.length)
+      return;
+    const redo = this.changeHistory[this.changeHistoryIndex];
+    this.changeHistoryIndex++;
+    this.doDiagramChange(redo);
+    this._currentChange = null;
+    this.diagramChanger.doSvgChange(redo, true);
   }
 
   private doDiagramChange(diagramChange: IDiagramChange) {
