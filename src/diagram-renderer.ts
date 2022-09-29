@@ -6,7 +6,7 @@ import { DiagramImageCache } from './diagram-image-cache';
  *  
  */
 export class DiagramRenderer {
-  public readonly svgDocument: SVGSVGElement;
+  private readonly svgDocument: SVGSVGElement;
   public readonly svgContent: SVGGElement;
   private readonly sourceConnectionMiddlePoints: Map<string, ElementPos>;
   private imageCache: DiagramImageCache;
@@ -50,7 +50,7 @@ export class DiagramRenderer {
     children.forEach(child => this.addElement(child, parent));
   }
 
-  public addElement(child: ArchiDiagramChild, parent: Element) {
+  public addElement(child: ArchiDiagramChild, parent: Element):Element {
     let archiElement = this.project.getById(child.ElementId);
     if (archiElement == null) {
       archiElement = new ArchiEntity();
@@ -62,7 +62,7 @@ export class DiagramRenderer {
     const entiyTypeCleaned = child.EntityType.split(':').pop();
 
     if (e.classList.contains('note')) {
-      let textContent = child.Element.querySelector(':scope>content')?.textContent ?? "";
+      let textContent = child.content ?? "";
       textContent = textContent
         .replace(/[\uf0b7\uf0a7]/g, '•') // TODO: wingdings to unicode: http://www.alanwood.net/demos/wingdings.html
         .replace(/\r/g, '');
@@ -146,8 +146,7 @@ export class DiagramRenderer {
           const d = e.ownerDocument.createElementNS(div.namespaceURI, 'div');
           if (t != '')
             d.textContent = t;
-          else
-            d.appendChild(e.ownerDocument.createElement('br'));
+          // d.appendChild(e.ownerDocument.createElementNS(div.namespaceURI, 'br'));
           div.appendChild(d);
         });
       }
@@ -191,8 +190,9 @@ export class DiagramRenderer {
       div.setAttribute('style', style.trimEnd());
 
     parent.append(e);
-
     this.addElements(child.Children, e);
+    
+    return e;
 
     
     function addDocumentation() {

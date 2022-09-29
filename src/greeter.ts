@@ -260,6 +260,14 @@ export class ArchiDiagramChild extends ArchiDiagramObject {
       this.Element.setAttribute('archimateElement', newId); 
     }
 
+    public get content(): string { return this.Element.querySelector(':scope>content')?.textContent; }
+    public set content(value) {
+      const contentNode = this.Element.querySelector(':scope>content');
+      if (!contentNode)
+        throw new Error('Content child element missing. Does this element entityType support content?')
+      contentNode.textContent = value;
+    }
+
     resetCache() {
       this.children = null;
     }

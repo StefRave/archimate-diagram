@@ -128,10 +128,10 @@
 
     g.element>foreignObject>div {
       padding: 2px;
+      display: flex;
     }
 
     g.element>foreignObject div {
-      display: flex;
       text-align: center;
 
       width: 100%;
@@ -804,10 +804,7 @@
       <use class="img" href="#imgSample" transform='matrix(1,0,0,1,0,0)' />
       <foreignObject width="168px" height="60px">
         <div xmlns="http://www.w3.org/1999/xhtml" style="width: 168px; height: 60px">
-          <div contenteditable="true">
-            <div>Note</div>
-            <div>multi line</div>
-          </div>
+          <div contenteditable="true"><div>Note</div><div>multi line</div></div>
         </div>
       </foreignObject>
     </g>
