@@ -10,6 +10,7 @@ export class DiagramRenderer {
   public readonly svgContent: SVGGElement;
   private readonly sourceConnectionMiddlePoints: Map<string, ElementPos>;
   private imageCache: DiagramImageCache;
+ 
   constructor(public readonly project: ArchimateProject, public readonly diagram: ArchiDiagram, public readonly template: DiagramTemplate) {
     this.svgDocument = this.template.getEmptySvg();
     this.svgContent = this.svgDocument.getElementById('content') as SVGGElement;
@@ -17,6 +18,8 @@ export class DiagramRenderer {
     this.sourceConnectionMiddlePoints = new Map<string, ElementPos>();
     this.imageCache = new DiagramImageCache(project, this.svgDocument.getElementById('imageDefs') as SVGGElement);
   }
+
+  public get svg(): SVGSVGElement { return this.svgContent.ownerSVGElement; }
 
   public buildSvg(): SVGSVGElement {
     const diagramGroup = this.svgContent.ownerDocument.createElementNS(this.svgContent.namespaceURI, 'g');
@@ -55,7 +58,7 @@ export class DiagramRenderer {
     if (archiElement == null) {
       archiElement = new ArchiEntity();
       archiElement.entityType = child.EntityType;
-      archiElement.name = child.Element.getAttribute('name');
+      archiElement.name = child.element.getAttribute('name');
     }
     const e = this.template.getElementByType(archiElement, child);
     const div = e.querySelector(':scope>foreignObject>div>div');
@@ -68,18 +71,18 @@ export class DiagramRenderer {
         .replace(/\r/g, '');
       archiElement.name = textContent;
     }
-    archiElement.documentation = child.Element.getAttribute('documentation');
+    archiElement.documentation = child.element.getAttribute('documentation');
 
     const imageUse = e.querySelector(':scope>use.img');
     if (imageUse) {
-      const imagePath = child.Element.getAttribute('imagePath');
+      const imagePath = child.element.getAttribute('imagePath');
       imageUse.setAttribute('href', '');
       if (imagePath) {
         this.imageCache.getImage(imagePath).then(imageInfo => {
   
           imageUse.setAttribute('href', '#' + imageInfo.defsId);
 
-          const imagePosition = parseInt(child.Element.getAttribute('imagePosition') ??
+          const imagePosition = parseInt(child.element.getAttribute('imagePosition') ??
             (entiyTypeCleaned === 'CanvasModelImage' ? '9' : '2'));
           
           if (imagePosition === 9) // FILL
@@ -103,7 +106,7 @@ export class DiagramRenderer {
             }
             imageUse.setAttribute('transform', `matrix(1,0,0,1,${imageX},${imageY})`);
           }
-          const alpha = child.Element.getAttribute('alpha');
+          const alpha = child.element.getAttribute('alpha');
           if (alpha) {
             imageUse.setAttribute('opacity', `${Number(alpha) / 255}`);
           }
@@ -111,26 +114,26 @@ export class DiagramRenderer {
       }
     }
     
-    const textPosition = child.Element.getAttribute('textPosition');
+    const textPosition = child.element.getAttribute('textPosition');
     switch (textPosition) {
       case '0': div.classList.add('top'); break;
       case '1': div.classList.add('middle'); break;
       case '2': div.classList.add('bottom'); break;
     }
-    const textAlignment = child.Element.getAttribute('textAlignment');
+    const textAlignment = child.element.getAttribute('textAlignment');
     switch (textAlignment) {
       case '1': div.classList.add('left'); break;
       case '2': div.classList.add('center'); break;
       case '4': div.classList.add('right'); break;
     }
     const rect = e.querySelector(':scope>rect');
-    const borderColor = child.Element.getAttribute('borderColor');
+    const borderColor = child.element.getAttribute('borderColor');
     if (borderColor) {
       rect.setAttribute('stroke', borderColor);
     }
 
     e.setAttribute('transform', `translate(${child.bounds.x}, ${child.bounds.y})`);
-    e.setAttribute('id', child.Id.toString());
+    e.setAttribute('id', child.id.toString());
     if (div != null) {
       div.setAttribute('contenteditable', 'true');
 
@@ -221,15 +224,15 @@ export class DiagramRenderer {
       connectionsNext = [];
 
       for (const sourceConnection of connections) {
-        const [end, endBounds] = this.getAbsolutePositionAndBounds(this.diagram.GetDiagramObjectById(sourceConnection.TargetId));
+        const [end, endBounds] = this.getAbsolutePositionAndBounds(this.diagram.GetDiagramObjectById(sourceConnection.targetId));
         if (end != null) {
-          const [start, startBounds] = this.getAbsolutePositionAndBounds(sourceConnection.Source);
+          const [start, startBounds] = this.getAbsolutePositionAndBounds(sourceConnection.source);
           const coords = DiagramRenderer.calculateConnectionCoords(start, startBounds, end, endBounds, sourceConnection);
           if (coords.length > 1) {
-            const relationEntity = this.project.getById(sourceConnection.RelationShipId);
+            const relationEntity = this.project.getById(sourceConnection.relationShipId);
             this.addRelation(coords, sourceConnection, relationEntity);
           }
-          this.sourceConnectionMiddlePoints.set(sourceConnection.Id,
+          this.sourceConnectionMiddlePoints.set(sourceConnection.id,
             coords.length % 2 === 1 ? coords[(coords.length - 1) / 2] :
               coords[coords.length / 2 - 1].add(coords[coords.length / 2]).multiply(0.5));
       }
@@ -246,7 +249,7 @@ export class DiagramRenderer {
       return [pos, bounds];
     }
     else {
-      const pos = this.sourceConnectionMiddlePoints.get(item.Id);
+      const pos = this.sourceConnectionMiddlePoints.get(item.id);
       if (pos != null)
         return [pos, ElementPos.Zero];
       return [null, null];
@@ -317,7 +320,7 @@ export class DiagramRenderer {
 
   static addEditPointGroup(group: Element, sourceConnection: ArchiSourceConnection, relationEntity: ArchiEntity) {
     const editPointGroup = group.ownerDocument.createElementNS(group.namespaceURI, 'g');
-    editPointGroup.setAttribute('id', sourceConnection.Id);
+    editPointGroup.setAttribute('id', sourceConnection.id);
     editPointGroup.setAttribute('class', 'con');
     if (relationEntity)
       editPointGroup.setAttribute('data-rel', relationEntity.Id);
@@ -344,7 +347,7 @@ export class DiagramRenderer {
     path.setAttribute('class', cssClass);
 
     if (!relationShipType) {
-      const type = Number(sourceConnection.Element.getAttribute('type'));
+      const type = Number(sourceConnection.element.getAttribute('type'));
       let markerStart = null;
       let markerEnd = null;
       let dashArray = null;
@@ -374,10 +377,10 @@ export class DiagramRenderer {
 
     // https://stackoverflow.com/questions/47088409/svg-attributes-beaten-by-cssstyle-in-priority
     let style = '';
-    if (sourceConnection.LineWidth != null)
-      style += 'stroke-width:' + sourceConnection.LineWidth + ';';
-    if (sourceConnection.LineColor != null)
-      style += 'stroke:' + sourceConnection.LineColor + ';';
+    if (sourceConnection.tineWidth != null)
+      style += 'stroke-width:' + sourceConnection.tineWidth + ';';
+    if (sourceConnection.lineColor != null)
+      style += 'stroke:' + sourceConnection.lineColor + ';';
     if (style !== '')
       path.setAttribute('style', style);
 
@@ -412,7 +415,7 @@ export class DiagramRenderer {
     start = new ElementPos(start.x, start.y);
     end = new ElementPos(end.x, end.y);
     
-    const bendPoints = sourceConnection.BendPoints.map(bp => start.add(new ElementPos(bp.x, bp.y)));
+    const bendPoints = sourceConnection.bendPoints.map(bp => start.add(new ElementPos(bp.x, bp.y)));
     const coords: ElementPos[] = [];
     let currentStart = start;
     bendPoints.forEach(nextPoint => {

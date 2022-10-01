@@ -37,7 +37,7 @@ export class ProjectTools {
         const sourceConnections = project.diagrams.flatMap(d => d.DescendantsWithSourceConnections)
           .filter(d => d instanceof ArchiSourceConnection)
           .map(d => <ArchiSourceConnection>d)
-          .filter(sc => sc.RelationShipId == rr.Id);
+          .filter(sc => sc.relationShipId == rr.Id);
         sourceConnections.forEach(sc => sc.setRelationShipId(erFound.Id));
       } else {
         rr.setSource(e.Id);
@@ -50,7 +50,7 @@ export class ProjectTools {
         const sourceConnections = project.diagrams.flatMap(d => d.DescendantsWithSourceConnections)
           .filter(d => d instanceof ArchiSourceConnection)
           .map(d => <ArchiSourceConnection>d)
-          .filter(sc => sc.RelationShipId == rr.Id);
+          .filter(sc => sc.relationShipId == rr.Id);
         sourceConnections.forEach(sc => sc.setRelationShipId(erFound.Id));
       } else {
         rr.setTarget(e.Id);

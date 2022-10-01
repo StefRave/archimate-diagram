@@ -24,12 +24,20 @@ export class ArchiEntityTree extends Component<ArchiEntityTreeProps> {
   }
 
   renderChildren(children: Element[]) {
+    children.sort(ArchiEntityTree.compareElements)
     return children.map(el => el.nodeName == 'folder' ? this.renderFolder(el) : this.renderDiagramElement(el));
   }
   
+  private static compareElements(a: Element, b: Element): number {
+    const typeOrder = b.localName.localeCompare(a.localName);
+    if (typeOrder != 0)
+      return typeOrder;
+    return a.getAttribute('name').localeCompare(b.getAttribute('name'));
+  }
+
   renderFolder(folder: Element): VNode {
-    return <li><span onClick={this.toggleFolder} class="caret">{folder.getAttribute('name')}</span>
-      <ul class="nested">{this.renderChildren(Array.from(folder.children))}</ul>
+    return <li><span onClick={this.toggleFolder} class="caret caret-down">{folder.getAttribute('name')}</span>
+      <ul class="nested active">{this.renderChildren(Array.from(folder.children))}</ul>
     </li>;
   }
 

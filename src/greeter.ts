@@ -123,7 +123,7 @@ export class ArchimateProject {
 
     public getUnused(): ArchiEntity[] {
       const usedIds = this.diagrams.flatMap(d => d.DescendantsWithSourceConnections)
-        .map(o => (<ArchiDiagramChild>o).ElementId ?? (<ArchiSourceConnection>o).RelationShipId).filter(o => o)
+        .map(o => (<ArchiDiagramChild>o).ElementId ?? (<ArchiSourceConnection>o).relationShipId).filter(o => o)
         .concat(this.diagrams.map(d => d.Id));
       const usedIdsSet = new Set(usedIds);
       const unusedEntities = asSequence(this.entitiesById.values()).filter(e => !usedIdsSet.has(e.Id));
@@ -181,7 +181,7 @@ export class ArchiDiagram extends ArchiEntity {
 
     public GetDiagramObjectById(id: string): ArchiDiagramObject {
       if (this.childById == null) {
-        this.childById = new Map<string, ArchiDiagramObject>(this.DescendantsWithSourceConnections.map(d => [d.Id, d]));
+        this.childById = new Map<string, ArchiDiagramObject>(this.DescendantsWithSourceConnections.map(d => [d.id, d]));
       }
       return this.childById.get(id);
     }
@@ -216,8 +216,8 @@ export class ArchiDiagram extends ArchiEntity {
 }
 
 export class ArchiDiagramObject {
-    public Element: Element;
-    public Id: string;
+    public element: Element;
+    public id: string;
     private sourceConnections: ArchiSourceConnection[]; // cache
 
     public get SourceConnections(): ArchiSourceConnection[] {
@@ -227,13 +227,13 @@ export class ArchiDiagramObject {
     }
 
     sourceConnectionsFromElement() {
-        const elements = Array.from(this.Element.children).filter(e => e.nodeName.startsWith('sourceConnection'));
+        const elements = Array.from(this.element.children).filter(e => e.nodeName.startsWith('sourceConnection'));
         return elements.map(c => new ArchiSourceConnection(c, this));
     }
 
     constructor(element: Element) {
-        this.Element = element;
-        this.Id = element.getAttribute('id');
+        this.element = element;
+        this.id = element.getAttribute('id');
     }
 }
 
@@ -255,14 +255,14 @@ export class ArchiDiagramChild extends ArchiDiagramObject {
 
     public setElementId(newId: string) {
       this.ElementId = newId;
-      if (this.Element.getAttribute('archimateElement') == null)
+      if (this.element.getAttribute('archimateElement') == null)
         throw new Error("archimateElement attribute exprected");
-      this.Element.setAttribute('archimateElement', newId); 
+      this.element.setAttribute('archimateElement', newId); 
     }
 
-    public get content(): string { return this.Element.querySelector(':scope>content')?.textContent; }
+    public get content(): string { return this.element.querySelector(':scope>content')?.textContent; }
     public set content(value) {
-      const contentNode = this.Element.querySelector(':scope>content');
+      const contentNode = this.element.querySelector(':scope>content');
       if (!contentNode)
         throw new Error('Content child element missing. Does this element entityType support content?')
       contentNode.textContent = value;
@@ -278,7 +278,7 @@ export class ArchiDiagramChild extends ArchiDiagramObject {
 
     public get Children(): ArchiDiagramChild[] {
         if (this.children == null) {
-            this.children = Array.from(this.Element.children)
+            this.children = Array.from(this.element.children)
                 .filter(n => n.nodeName == 'children' || n.nodeName == 'child')
                 .map(c => new ArchiDiagramChild(c, this.diagram, this));
         }
@@ -317,16 +317,16 @@ export class ArchiDiagramChild extends ArchiDiagramObject {
       else
         this.diagram.resetCache();
         
-      this.Element.remove();
+      this.element.remove();
       this._parent = parentElement;
-      parentElement.Element.appendChild(this.Element);
+      parentElement.element.appendChild(this.element);
     }
     changeElementParentDiagram(diagram: ArchiDiagram) {
       this.parent.resetCache();
-      this.Element.remove();
+      this.element.remove();
       this._parent = null;
       diagram.resetCache();
-      diagram.element.appendChild(this.Element);
+      diagram.element.appendChild(this.element);
     }
 
     public get bounds() {
@@ -335,7 +335,7 @@ export class ArchiDiagramChild extends ArchiDiagramObject {
 
     public set bounds(value: ElementBounds) {
       this._bounds = value;
-      const b = this.Element.getElementsByTagName('bounds')[0];
+      const b = this.element.getElementsByTagName('bounds')[0];
           b.setAttribute('x', value.x.toFixed(2));
           b.setAttribute('y', value.y.toFixed(2));
           b.setAttribute('width', value.width.toFixed(2));
@@ -348,36 +348,52 @@ export enum FigureType {
   Figure = 1,
 }
 export class ArchiSourceConnection extends ArchiDiagramObject {
-    TargetId: string;
-    RelationShipId: string;
-    BendPoints: ElementPos[];
-    LineWidth: string;
-    LineColor: string;
+    private _bendPoints: ElementPos[];
+    targetId: string;
+    relationShipId: string;
+    tineWidth: string;
+    lineColor: string;
     fillColor: string;
     name: string;
-    Source: ArchiDiagramObject;
+    source: ArchiDiagramObject;
+    
+    get bendPoints() { return this._bendPoints; }
+    setBendPoints(value: ElementPos[], targetOffsetX: number, targetOffsetY: number) {
+      this._bendPoints = value;
+      Array.from(this.element.children)
+        .filter(e => e.nodeName === 'bendpoints'/*git*/ || e.nodeName === 'bendpoint')
+        .forEach(e => e.remove());
+      value.forEach(bp => {
+        const bpe = this.element.ownerDocument.createElement('bendpoint');
+        bpe.setAttribute('startX', `${bp.x}`);
+        bpe.setAttribute('startY', `${bp.y}`);
+        bpe.setAttribute('endX', `${bp.x + targetOffsetX}`);
+        bpe.setAttribute('endY', `${bp.y + targetOffsetY}`);
+        this.element.appendChild(bpe);
+      });
+    }
 
     public setRelationShipId(id: string) {
-      this.RelationShipId = id;
-      if (this.Element.getAttribute('archimateRelationship') == null)
+      this.relationShipId = id;
+      if (this.element.getAttribute('archimateRelationship') == null)
         throw new Error("archimateRelationship attribute expected");
-      this.Element.setAttribute('archimateRelationship', id);
+      this.element.setAttribute('archimateRelationship', id);
     }
 
     constructor(element: Element, source: ArchiDiagramObject) {
         super(element);
-        this.Source = source;
-        this.TargetId = element.getAttribute('target');
+        this.source = source;
+        this.targetId = element.getAttribute('target');
         this.name = element.getAttribute('name');
-        this.RelationShipId = element.getAttribute('archimateRelationship') ??
+        this.relationShipId = element.getAttribute('archimateRelationship') ??
             archiId(element.getElementsByTagName('archimateRelationship')[0]);
-        const bp = Array.from(element.children).filter(e => e.nodeName === 'bendpoints' || e.nodeName === 'bendpoint');
-        this.BendPoints = bp.map(
+        const bp = Array.from(element.children).filter(e => e.nodeName === 'bendpoints'/*git*/ || e.nodeName === 'bendpoint');
+        this._bendPoints = bp.map(
             p => new ElementPos(
                 parseFloat(p.getAttribute('startX') ?? '0'),
                 parseFloat(p.getAttribute('startY') ?? '0')));
-        this.LineWidth = element.getAttribute('lineWidth');
-        this.LineColor = element.getAttribute('lineColor');
+        this.tineWidth = element.getAttribute('lineWidth');
+        this.lineColor = element.getAttribute('lineColor');
     }
 }
 

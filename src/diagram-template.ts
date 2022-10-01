@@ -3,9 +3,28 @@ import svgSource from './archimate.svg?raw';
 
 
 export class DiagramTemplate {
-  private elementByType: Map<string, Element>;
-  private templateDoc: SVGSVGElement;
-  public elementSelection: SVGGElement;
+  private readonly elementByType: Map<string, Element>;
+  private readonly elementSelection: SVGGElement;
+  private readonly templateEditInfo: SVGGElement;
+
+  constructor(private readonly templateDoc: SVGSVGElement) {
+    const content = templateDoc.getElementById('content');
+    this.elementSelection = content.querySelector('g#ElementSelected>g.selection');
+    this.templateEditInfo = templateDoc.getElementById('editInfo') as SVGGElement;
+
+    const archiElements = Array.from(content.querySelectorAll('g.element'));
+    this.elementByType = new Map<string, Element>(archiElements.map(e => [e.id, e]));
+
+    content.replaceChildren();
+    templateDoc.getElementById('imageDefs').replaceChildren();
+    templateDoc.getElementById("icons").remove();
+  }
+
+  public static getFromDrawing(): DiagramTemplate {
+    const parser = new DOMParser();
+    const templateDoc = parser.parseFromString(svgSource, 'application/xml') as unknown as SVGSVGElement;
+    return new DiagramTemplate(templateDoc);
+  }
 
   public getEmptySvg(): SVGSVGElement {
     return this.templateDoc.cloneNode(true) as SVGSVGElement;
@@ -133,23 +152,29 @@ export class DiagramTemplate {
     }
   }
 
-  public static getFromDrawing(): DiagramTemplate {
-    const result = new DiagramTemplate();
-
-    const parser = new DOMParser();
-
-    result.templateDoc = parser.parseFromString(svgSource, 'application/xml') as unknown as SVGSVGElement;
-
-    const content = result.templateDoc.getElementById('content');
-    result.elementSelection = content.querySelector('g#ElementSelected>g.selection');
-
-    const archiElements = Array.from(content.querySelectorAll('g.element'));
-    result.elementByType = new Map<string, Element>(archiElements.map(e => [e.id, e]));
-
-    content.replaceChildren();
-    result.templateDoc.getElementById('imageDefs').replaceChildren();
-    result.templateDoc.getElementById("icons").remove();
-    
+  public getEditInfo(parent: Element): EditInfoElement {
+    const result = new EditInfoElement(this.templateEditInfo.cloneNode(true) as SVGGElement);
+    parent.appendChild(result.element);
     return result;
+  }
+}
+
+export class EditInfoElement {
+  private text: SVGTextElement;
+  private rect: SVGRectElement;
+
+  constructor(public readonly element: SVGGElement) {
+    this.text = element.querySelector('text') as SVGTextElement;
+    this.rect = element.querySelector('rect') as SVGRectElement;
+  }
+
+  public setText(constent: string, x: number, y: number) {
+    this.text.textContent = constent;
+    const bbox = this.text.getBBox();
+
+    this.rect.setAttribute('width', `${bbox.width + 10}px`);
+    this.rect.setAttribute('height', `${bbox.height + 4}px`);
+
+    this.element.setAttribute('transform', `translate(${x},${y})`);
   }
 }

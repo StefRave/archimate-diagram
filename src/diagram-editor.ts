@@ -1,13 +1,14 @@
 import { ArchiDiagram, ArchiDiagramChild, ArchimateProject, ArchiSourceConnection, ElementBounds, ElementPos } from './greeter';
 import { DiagramRenderer } from './diagram-renderer';
 import { ChangeAction, ChangeFunctions, IDiagramChange, IXy } from './diagram-change';
+import { EditInfoElement } from './diagram-template';
 
 export class DiagramEditor {
   private readonly contentElement: SVGGElement;
-  private selectedElement: SVGGElement;
+  private selectedElementId: string;
+  private selectedElementIdDoubleClicked: boolean;
   private startDragMousePosition: {x: number, y: number};
   private startDragMouseOffset: {x: number, y: number};
-  private lastElementClicked: SVGElement;
   private selectedRelation: SVGElement;
   private selectedDropTarget: SVGGElement;
   private activeChangeResizeCorner: string;
@@ -15,9 +16,11 @@ export class DiagramEditor {
   private changeManager: ChangeManager;
   private keyDownFunction = (evt: KeyboardEvent) => this.onKeyDown(evt);
 
+  private get selectedElement(): SVGGElement { return this.contentElement.ownerSVGElement.getElementById(this.selectedElementId) as SVGGElement; }
+
   constructor(private svg: SVGSVGElement, private project: ArchimateProject, private diagram: ArchiDiagram, private renderer: DiagramRenderer) {
     this.contentElement = svg.querySelector('svg>g');
-    this.changeManager = new ChangeManager(project, new DiagramChanger(renderer, project));
+    this.changeManager = new ChangeManager(project, new EditActionBuilder(renderer));
   }
 
   public makeDraggable() {
@@ -41,7 +44,6 @@ export class DiagramEditor {
     const targetElement = target.closest('.element');
     if ((evt.key == 'Enter' && !targetElement.classList.contains('note')) || evt.key == 'Escape') {
       (evt.target as HTMLElement).blur();
-      this.changeManager.undoActive();
     }
     else if (evt.key == 'F2') {
       const elmentToEdit = this.contentElement.querySelector(':scope g.lastSelection');
@@ -100,8 +102,11 @@ export class DiagramEditor {
       return;
 
     const target = evt.target as SVGElement;
-    this.selectedElement = target.closest('.element');
-    console.log('select ' + this.selectedElement?.id);
+    const clickedElementId = target.closest('.element')?.id;
+    this.selectedElementIdDoubleClicked = clickedElementId == this.selectedElementId; 
+    this.selectedElementId = clickedElementId;
+
+    console.log('select ' + this.selectedElementId);
     const controlKeyDown = evt.ctrlKey;
     this.activeDragging = false;
 
@@ -111,7 +116,7 @@ export class DiagramEditor {
     this.startDragMousePosition = this.getMousePosition(evt);
     this.startDragMouseOffset = {x: 0, y: 0}
 
-    if (this.selectedElement != null) {
+    if (this.selectedElementId) {
       if (target.tagName === 'circle' && target.parentElement.classList.contains('selection'))
         this.editResizeStart(target);
       else
@@ -133,7 +138,6 @@ export class DiagramEditor {
     if (this.changeManager.activeAction == ChangeAction.Edit)
       return;
 
-    this.lastElementClicked = null;
     const mouseCoords = this.getMousePosition(evt);
     const delta = { x: mouseCoords.x - this.startDragMousePosition.x, y: mouseCoords.y - this.startDragMousePosition.y };
     const distanceFromStart = Math.sqrt(delta.x ** 2 + delta.y ** 2);
@@ -166,11 +170,10 @@ export class DiagramEditor {
       const controlKeyDown = evt.ctrlKey;
       const target = evt.target as SVGElement;
 
-      if (this.selectedElement !== null && this.selectedElement === this.lastElementClicked && !controlKeyDown && !target.parentElement.classList.contains('selection')) {
+      if (this.selectedElementId !== null && this.selectedElementIdDoubleClicked && !controlKeyDown && !target.parentElement.classList.contains('selection')) {
         this.editElementText(this.selectedElement);
         return;
       }
-      this.lastElementClicked = this.selectedElement;
       this.changeManager.cancelChange();
     } else {
       if (this.changeManager.activeAction == ChangeAction.Move)
@@ -268,8 +271,6 @@ export class DiagramEditor {
         sel.addRange(range);
       }, 100);
     }
-    console.log('deselect ' + this.selectedElement?.id);
-    this.selectedElement = null;
   }
 
   private getDiagramElement(element: Element) {
@@ -303,7 +304,7 @@ export class DiagramEditor {
         positionNew: { x: diagramElement.AbsolutePosition.x, y: diagramElement.AbsolutePosition.y, width: diagramElement.bounds.width, height: diagramElement.bounds.height },
         positionOld: { x: diagramElement.bounds.x, y: diagramElement.bounds.y, width: diagramElement.bounds.width, height: diagramElement.bounds.height },
         parentIdNew: this.diagram.Id,
-        parentIdOld: diagramElement.parent?.Id ?? this.diagram.Id,
+        parentIdOld: diagramElement.parent?.id ?? this.diagram.Id,
       }
     });
     this.selectedDropTarget = this.selectedElement.parentElement as unknown as SVGGElement;
@@ -341,8 +342,8 @@ export class DiagramEditor {
         elementId: this.selectedElement.id,
         positionNew: { x: diagramElement.bounds.x, y: diagramElement.bounds.y, width: diagramElement.bounds.width, height: diagramElement.bounds.height },
         positionOld: { x: diagramElement.bounds.x, y: diagramElement.bounds.y, width: diagramElement.bounds.width, height: diagramElement.bounds.height },
-        parentIdNew: diagramElement.parent?.Id ?? this.diagram.Id,
-        parentIdOld: diagramElement.parent?.Id ?? this.diagram.Id,
+        parentIdNew: diagramElement.parent?.id ?? this.diagram.Id,
+        parentIdOld: diagramElement.parent?.id ?? this.diagram.Id,
       }
     });
   }
@@ -364,7 +365,6 @@ export class DiagramEditor {
       move.positionNew.height = move.positionOld.height + delta.y;
     }
     this.changeManager.updateChange();
-    this.selectedElement = this.contentElement.ownerSVGElement.getElementById(this.selectedElement.id) as SVGGElement;
     this.selectedElement.classList.add('lastSelection');
     this.selectedElement.classList.add('selected');
     this.setDraggingAttributes();
@@ -378,15 +378,19 @@ export class DiagramEditor {
       sibling = sibling.previousElementSibling;
     }
     const sourceConnection = this.diagram.GetDiagramObjectById(target.parentElement.id) as ArchiSourceConnection;
-    const bendPointsOld = sourceConnection.BendPoints.map(bp => <IXy>{ x: bp.x, y: bp.y });
+    const bendPointsOld = sourceConnection.bendPoints.map(bp => <IXy>{ x: bp.x, y: bp.y });
+    const [start] = this.renderer.getAbsolutePositionAndBounds(sourceConnection.source);
+    const [end] = this.renderer.getAbsolutePositionAndBounds(this.diagram.GetDiagramObjectById(sourceConnection.targetId));
+
     this.changeManager.startChange(<IDiagramChange>{
       action: ChangeAction.Connection,
       diagramId: this.diagram.Id,
       connection: {
         index: index,
-        sourceConnectionId: sourceConnection.Id,
+        sourceConnectionId: sourceConnection.id,
         bendPointsOld: bendPointsOld,
-        bendPointsNew: bendPointsOld
+        bendPointsNew: bendPointsOld,
+        targetOffset: { x: end.x - start.x, y: end.y - start.y } 
       }
     });
   }
@@ -397,8 +401,8 @@ export class DiagramEditor {
     let bendPointIndex = -1;
 
     const sourceConnection = this.diagram.GetDiagramObjectById(change.sourceConnectionId) as ArchiSourceConnection;
-    const [start, startBounds] = this.renderer.getAbsolutePositionAndBounds(sourceConnection.Source);
-    const [end, endBounds] = this.renderer.getAbsolutePositionAndBounds(this.diagram.GetDiagramObjectById(sourceConnection.TargetId));
+    const [start, startBounds] = this.renderer.getAbsolutePositionAndBounds(sourceConnection.source);
+    const [end, endBounds] = this.renderer.getAbsolutePositionAndBounds(this.diagram.GetDiagramObjectById(sourceConnection.targetId));
     const connectionCoords = DiagramRenderer.calculateConnectionCoords(start, startBounds, end, endBounds, sourceConnection);
 
     if (change.index % 2 == 1) /* intermediate point */ {
@@ -469,121 +473,199 @@ export class DiagramEditor {
   }
 }
 
-class DiagramChanger
-{
-  constructor(private renderer: DiagramRenderer, private project: ArchimateProject) {
+class EditActionBuilder {
+  private _change: IDiagramChange;
+  private _action: EditAction;
+
+  get action() { return this._action }
+  get change() { return this._change }
+  set change(value: IDiagramChange) {
+    this._change = value;
+    this._action = value ? EditActionBuilder.getAction(value.action) : null;
   }
 
-  public doSvgChange(change: IDiagramChange, finalize = true) {
-    const svg = this.renderer.svgContent.ownerSVGElement;
-    const diagram = this.renderer.diagram;
+  constructor(private renderer: DiagramRenderer) {
+  }
 
-    if (change.action == ChangeAction.Move) {
-      const move = change.move;
-      const element = svg.getElementById(move.elementId) as SVGElement
-      if (element.parentElement.id != move.parentIdNew) {
-        element.remove();
-        const newParent = svg.getElementById(move.parentIdNew ?? 'content') as SVGElement;
-        newParent.appendChild(element);
-      }
-      const selectedElement = svg.getElementById(move.elementId);
-      selectedElement.setAttributeNS(null, 'transform', `translate(${move.positionNew.x}, ${move.positionNew.y})`);
-
-      this.renderer.clearRelations();
-      this.renderer.addRelations();
-
-      const diagramElement = diagram.GetDiagramObjectById(move.elementId) as ArchiDiagramChild
-      const connectionsToRerender = diagram.DescendantsWithSourceConnections.filter(o => o instanceof ArchiSourceConnection && (o.Source.Id == diagramElement.Id || o.TargetId == diagramElement.Id)) as ArchiSourceConnection[];
-      connectionsToRerender.forEach(c => {
-        const lineG = selectedElement.ownerDocument.getElementById(c.Id);
-        if (lineG)
-          lineG.classList.add('highlight');
-      });
-
-      if (finalize) {
-        selectedElement.classList.remove('dragging');
-          svg.classList.remove('dragging');
-        svg.querySelectorAll('g.drop').forEach(g => g.classList.remove('drop'));
-      }
+  private static getAction(action: ChangeAction): EditAction {
+    switch(action) {
+      case ChangeAction.Move:
+        return new EditMoveAction();
+      case ChangeAction.Resize:
+        return new EditResizeAction();
+      case ChangeAction.Connection:
+        return new EditConnectionAction();
+      case ChangeAction.Edit:
+        return new EditEditAction();
+      default:
+        throw new Error(`Unimplemented action for ${ChangeAction[action]}`);
     }
-    else if (change.action == ChangeAction.Resize) {
-      const resize = change.move;
-      const element = svg.getElementById(resize.elementId) as SVGElement
-      const parent = element.parentElement;
-      const diagramElement = diagram.GetDiagramObjectById(resize.elementId) as ArchiDiagramChild
+  }
+
+  public doSvgChange(changeState = ChangeState.Final) {
+    this.action.doSvgChange(this.change, this.renderer, changeState);
+  }
+}
+
+abstract class EditAction {
+  public abstract doSvgChange(change: IDiagramChange, renderer: DiagramRenderer, changeState: ChangeState): void;
+
+}
+
+class EditMoveAction extends EditAction {
+  private editInfo: EditInfoElement;
+
+
+  public doSvgChange(change: IDiagramChange, renderer: DiagramRenderer, changeState: ChangeState): void {
+    const move = change.move;
+    const element = renderer.svg.getElementById(move.elementId) as SVGElement
+    if (element.parentElement.id != move.parentIdNew) {
       element.remove();
-      this.renderer.addElement(diagramElement, parent);
-      this.renderer.clearRelations();
-      this.renderer.addRelations();
+      const newParent = renderer.svg.getElementById(move.parentIdNew ?? 'content') as SVGElement;
+      newParent.appendChild(element);
     }
-    else if (change.action == ChangeAction.Connection) {
-      this.renderer.clearRelations();
-      this.renderer.addRelations();
+    const selectedElement = renderer.svg.getElementById(move.elementId);
+    selectedElement.setAttributeNS(null, 'transform', `translate(${move.positionNew.x}, ${move.positionNew.y})`);
+
+    renderer.clearRelations();
+    renderer.addRelations();
+
+    const diagramElement = renderer.diagram.GetDiagramObjectById(move.elementId) as ArchiDiagramChild
+    const connectionsToRerender = renderer.diagram.DescendantsWithSourceConnections.filter(o => o instanceof ArchiSourceConnection && (o.source.id == diagramElement.id || o.targetId == diagramElement.id)) as ArchiSourceConnection[];
+    connectionsToRerender.forEach(c => {
+      const lineG = selectedElement.ownerDocument.getElementById(c.id);
+      if (lineG)
+        lineG.classList.add('highlight');
+    });
+
+    if (changeState == ChangeState.Active) {
+      this.editInfo = this.editInfo ?? renderer.template.getEditInfo(renderer.svgContent);
+      this.editInfo.setText(`${move.positionNew.x}, ${move.positionNew.y}`, move.positionNew.x + 10, move.positionNew.y + move.positionNew.height + 5);
     }
-    else if (change.action == ChangeAction.Edit) {
-      const edit = change.edit;
-      if (finalize) { // don't render in case editing is performed by the
-        const element = svg.getElementById(edit.elementId) as SVGElement
-        const parent = element.parentElement;
-        const diagramElement = diagram.GetDiagramObjectById(edit.elementId) as ArchiDiagramChild
-        element.remove();
-        this.renderer.addElement(diagramElement, parent);
-      }
+
+    if (changeState == ChangeState.Final) {
+      this.editInfo?.element.remove();
+
+      selectedElement.classList.remove('dragging');
+      renderer.svg.classList.remove('dragging');
+      renderer.svg.querySelectorAll('g.drop').forEach(g => g.classList.remove('drop'));
     }
   }
 }
 
+class EditResizeAction extends EditAction {
+  private editInfo: EditInfoElement;
 
+  public doSvgChange(change: IDiagramChange, renderer: DiagramRenderer, changeState: ChangeState): void {
+    const resize = change.move;
+      const element = renderer.svg.getElementById(resize.elementId) as SVGElement
+      const parent = element.parentElement;
+      const diagramElement = renderer.diagram.GetDiagramObjectById(resize.elementId) as ArchiDiagramChild
+      element.remove();
+      const newElement = renderer.addElement(diagramElement, parent);
+      newElement.classList.add('lastSelection');
+      newElement.classList.add('selected');
+
+      renderer.clearRelations();
+      renderer.addRelations();
+
+      if (changeState == ChangeState.Active) {
+        this.editInfo = this.editInfo ?? renderer.template.getEditInfo(renderer.svgContent);
+        this.editInfo.setText(`${resize.positionNew.width} x ${resize.positionNew.height}`,
+          resize.positionNew.x + 10, resize.positionNew.y + resize.positionNew.height + 5);
+      }
+  
+      if (changeState == ChangeState.Final) {
+        this.editInfo?.element.remove();
+      }  
+  }
+}
+
+class EditConnectionAction extends EditAction {
+  public doSvgChange(change: IDiagramChange, renderer: DiagramRenderer): void {
+    renderer.clearRelations();
+    renderer.addRelations();
+  }
+}
+
+class EditEditAction extends EditAction {
+  public doSvgChange(change: IDiagramChange, renderer: DiagramRenderer, changeState: ChangeState): void {
+    const edit = change.edit;
+    if (changeState == ChangeState.Final) { // don't render in case editing is performed by the
+      const element = renderer.svg.getElementById(edit.elementId) as SVGElement
+      const parent = element.parentElement;
+      const diagramElement = renderer.diagram.GetDiagramObjectById(edit.elementId) as ArchiDiagramChild
+      element.remove();
+      const newElement = renderer.addElement(diagramElement, parent);
+      if (element.classList.contains('selected'))
+        newElement.classList.add('selected');
+      if (element.classList.contains('lastSelection'))
+        newElement.classList.add('lastSelection');
+    }
+  }
+}
+
+enum ChangeState {
+  Init,
+  Active,
+  Final,
+}
 class ChangeManager {
   private changeHistory: IDiagramChange[] = [];
   private changeHistoryIndex = 0;
-  private _currentChange: IDiagramChange;
-  public get currentChange(): IDiagramChange { return this._currentChange; }
-  public get isActive(): boolean { return !!this._currentChange; }
 
-  constructor(public project: ArchimateProject, private diagramChanger: DiagramChanger) {
+  public set currentChange(value: IDiagramChange) {
+    if (this.changer.change != value)
+      this.changer.change = value;
+  }
+  public get currentChange(): IDiagramChange { return this.changer.change; }
+
+  public get isActive(): boolean { return !!this.currentChange; }
+
+  constructor(public project: ArchimateProject, private changer: EditActionBuilder) {
   }
 
   public get activeAction(): ChangeAction {
-     return this._currentChange?.action;
- }
+     return this.currentChange?.action;
+  }
 
   public undoActive() {
     if (!this.isActive)
       return;
-    const undoed = ChangeFunctions.undoChange(this._currentChange);
-    this.doDiagramChange(undoed);
-    this._currentChange = null;
-    this.diagramChanger.doSvgChange(undoed);
+    this.currentChange = ChangeFunctions.undoChange(this.currentChange);
+    this.doDiagramChange();
+    this.changer.doSvgChange();
+    this.currentChange = null;
   }
 
   startChange(change: IDiagramChange) {
 console.log(`startChange ${ChangeAction[change.action]}`);
-    this._currentChange = change;
+    this.currentChange = change;
   }
   
   public updateChange(change: IDiagramChange = this.currentChange) {
-    this.doDiagramChange(change, false);
-    this._currentChange = change;
-    this.diagramChanger.doSvgChange(change, false);
+    this.currentChange = change;
+    this.doDiagramChange();
+    this.changer.doSvgChange(ChangeState.Active);
   }
 
   cancelChange() {
-console.log(`cancelChange ${ChangeAction[this._currentChange?.action]}`);
-    this._currentChange = null;
+console.log(`cancelChange ${ChangeAction[this.currentChange?.action]}`);
+    this.currentChange = null;
   }
 
   public finalizeChange(change: IDiagramChange = this.currentChange) {
-console.log(`finalizeChange ${ChangeAction[this._currentChange?.action]}`);
-    this.doDiagramChange(change);
-    this._currentChange = null;
-    this.diagramChanger.doSvgChange(change);
+console.log(`finalizeChange ${ChangeAction[this.currentChange?.action]}`);
+    this.currentChange = change;
+    this.doDiagramChange();
+    this.changer.doSvgChange();
     
     if (ChangeFunctions.isChanged(change)) {
       this.changeHistory = this.changeHistory.slice(0, this.changeHistoryIndex);
       this.changeHistory.push(change);
       this.changeHistoryIndex++;
     }
+    this.currentChange = null;
   }
 
   public undo() {
@@ -594,10 +676,10 @@ console.log(`finalizeChange ${ChangeAction[this._currentChange?.action]}`);
     if (this.changeHistoryIndex == 0)
       return;
     this.changeHistoryIndex--;
-    const undoed = ChangeFunctions.undoChange(this.changeHistory[this.changeHistoryIndex]);
-    this.doDiagramChange(undoed);
-    this._currentChange = null;
-    this.diagramChanger.doSvgChange(undoed);
+    this.currentChange = ChangeFunctions.undoChange(this.changeHistory[this.changeHistoryIndex]);
+    this.doDiagramChange();
+    this.changer.doSvgChange();
+    this.currentChange = null;
   }
 
   public redo() {
@@ -607,17 +689,17 @@ console.log(`finalizeChange ${ChangeAction[this._currentChange?.action]}`);
     }
     if (this.changeHistoryIndex >= this.changeHistory.length)
       return;
-    const redo = this.changeHistory[this.changeHistoryIndex];
+    this.currentChange = this.changeHistory[this.changeHistoryIndex];
     this.changeHistoryIndex++;
-    this.doDiagramChange(redo);
-    this._currentChange = null;
-    this.diagramChanger.doSvgChange(redo);
+    this.doDiagramChange();
+    this.changer.doSvgChange();
+    this.currentChange = null;
   }
 
-  private doDiagramChange(diagramChange: IDiagramChange, finalize = true) {
-    const diagram = this.project.getById(diagramChange.diagramId) as ArchiDiagram;
-    if (diagramChange.move) {
-      const change = diagramChange.move;
+  private doDiagramChange() {
+    const diagram = this.project.getById(this.currentChange.diagramId) as ArchiDiagram;
+    if (this.currentChange.move) {
+      const change = this.currentChange.move;
       const element = diagram.GetDiagramObjectById(change.elementId) as ArchiDiagramChild
       const parentElement = change.parentIdNew  == diagram.Id ? null : diagram.GetDiagramObjectById(change.parentIdNew) as ArchiDiagramChild
 
@@ -629,13 +711,14 @@ console.log(`finalizeChange ${ChangeAction[this._currentChange?.action]}`);
       }
       element.bounds = new ElementBounds(change.positionNew.x, change.positionNew.y, change.positionNew.width, change.positionNew.height);
     }
-    if (diagramChange.connection) {
-      const change = diagramChange.connection;
+    if (this.currentChange.connection) {
+      const change = this.currentChange.connection;
       const sourceConnection = diagram.GetDiagramObjectById(change.sourceConnectionId) as ArchiSourceConnection;
-      sourceConnection.BendPoints = change.bendPointsNew.map(xy => <ElementPos>{ x: xy.x, y: xy.y});
+      const bendPoints = change.bendPointsNew.map(xy => <ElementPos>{ x: xy.x, y: xy.y});
+      sourceConnection.setBendPoints(bendPoints, change.targetOffset.x, change.targetOffset.y);
     }
-    if (diagramChange.edit) {
-      const change = diagramChange.edit;
+    if (this.currentChange.edit) {
+      const change = this.currentChange.edit;
       const element = diagram.GetDiagramObjectById(change.elementId) as ArchiDiagramChild
       if (element.ElementId) {
         const archiElement = this.project.getById(element.ElementId)

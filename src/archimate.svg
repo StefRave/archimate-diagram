@@ -356,6 +356,16 @@
     g.element.selected>g.selection circle.rnw { cursor: nw-resize; }
     g.element.selected>g.selection circle.rse { cursor: se-resize; }
     g.element.selected>g.selection circle.rsw { cursor: sw-resize; }
+
+    g.editInfo>rect {
+      fill: #fffa;
+      rx: 5px;
+      ry: 5px;
+    }
+    g.editInfo>text {
+      font-family: "Segoe UI", Verdana, Geneva, Tahoma, sans-serif;
+      font-size: 12px;
+    }
   </style>
   <defs>
     <!-- https://css-tricks.com/use-and-reuse-everything-in-svg-even-animations/ -->
@@ -1035,7 +1045,7 @@
       <rect x="8" y="0" width="160" height="60" />
       <rect x="0" y="12" width="16" height="10" />
       <rect x="0" y="28" width="16" height="10" />
-      <foreignObject x="8px" width="160px" height="60px">
+      <foreignObject x="0px" width="168px" height="60px">
         <div xmlns="http://www.w3.org/1999/xhtml" style="width: 168px; height: 60px">
           <div>Application Component</div>
         </div>
@@ -1281,6 +1291,10 @@
             <div>Arrow line start</div>
           </div>
         </foreignObject>
+      </g>
+      <g id="editInfo" class="editInfo" transform="translate(0, 330)">
+        <rect width="80" height="20" />
+        <text x="3" y="10" alignment-baseline="central">100, 100</text>
       </g>
     </g>
   </g>

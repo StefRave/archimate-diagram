@@ -21,13 +21,7 @@ export class ArchiEditor extends Component<ArchiEditorProps, ArchiEditorState> {
   private diagramTemplate = DiagramTemplate.getFromDrawing();
 
   async componentWillMount() {
-    Split({
-      columnGutters: [{
-        track: 1,
-        element: document.querySelector('.vertical-gutter'),
-      }]
-    })
-    
+
     let projectData: ArrayBuffer;
     const lastProjectBase64 = window.localStorage.getItem('lastProject');
     if (lastProjectBase64)
@@ -44,6 +38,14 @@ export class ArchiEditor extends Component<ArchiEditorProps, ArchiEditorState> {
     this.activateLoadedProject(project, diagram);
   }
 
+  componentDidMount() {
+    Split({
+      columnGutters: [{
+        track: 1,
+        element: document.querySelector('.vertical-gutter'),
+      }]
+    });
+  }
 
   private async changeView(viewId: string) {
     const diagram = this.state.project.diagrams.filter(d => d.Id === viewId)[0] ?? this.state.project.diagrams[0];

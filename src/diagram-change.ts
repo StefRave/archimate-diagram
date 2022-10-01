@@ -30,6 +30,7 @@ export class ChangeFunctions {
         index: change.index,
         bendPointsNew: change.bendPointsOld,
         bendPointsOld: change.bendPointsNew,
+        targetOffset: change.targetOffset,
       }
     }
 
@@ -105,6 +106,7 @@ export interface IDiagramChangeConnection {
   index: number;
   bendPointsNew: IXy[];
   bendPointsOld: IXy[];
+  targetOffset: IXy; // needed to set bendPoint endX and endY
 }
 
 export interface IXy {
