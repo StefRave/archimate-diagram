@@ -333,29 +333,29 @@
     g.con.selected circle.end {
       cursor: crosshair;
     }
-    g.element>g.selection {
+    g.selection {
       display: none;
       stroke: #000;
       fill: #fff;
     }
 
-    g.element.selected>g.selection  {
+    g.selection  {
       display: initial;
     }
 
-    g.element.selected.lastSelection>g.selection circle {
+    g.selection.lastSelection circle {
       fill: #000;
       stroke: #fff;
     }
 
-    g.element.selected>g.selection circle.re { cursor: e-resize; }
-    g.element.selected>g.selection circle.rw { cursor: w-resize; }
-    g.element.selected>g.selection circle.rs { cursor: s-resize; }
-    g.element.selected>g.selection circle.rn { cursor: n-resize; }
-    g.element.selected>g.selection circle.rne { cursor: ne-resize; }
-    g.element.selected>g.selection circle.rnw { cursor: nw-resize; }
-    g.element.selected>g.selection circle.rse { cursor: se-resize; }
-    g.element.selected>g.selection circle.rsw { cursor: sw-resize; }
+    g.selection circle.re { cursor: e-resize; }
+    g.selection circle.rw { cursor: w-resize; }
+    g.selection circle.rs { cursor: s-resize; }
+    g.selection circle.rn { cursor: n-resize; }
+    g.selection circle.rne { cursor: ne-resize; }
+    g.selection circle.rnw { cursor: nw-resize; }
+    g.selection circle.rse { cursor: se-resize; }
+    g.selection circle.rsw { cursor: sw-resize; }
 
     g.editInfo>rect {
       fill: #fffa;
@@ -1120,7 +1120,7 @@
       </foreignObject>
     </g>
 
-    <g id="ElementSelected" transform="translate(12, 528)" class="undefined element selected">
+    <g id="ElementSelected" transform="translate(12, 528)" class="undefined element">
       <rect width="168" height="60" />
       <use href="#ExperimentIcon" x="168" y="0" />
       <g class="selection">
@@ -1136,6 +1136,27 @@
       <foreignObject width="168px" height="60px">
         <div xmlns="http://www.w3.org/1999/xhtml" style="width: 168px; height: 60px">
           <div class="left bottom">Selected</div>
+          <div class="elementType">type</div>
+        </div>
+      </foreignObject>
+    </g>
+
+    <g id="ElementLastSelected" transform="translate(192, 528)" class="undefined element">
+      <rect width="168" height="60" />
+      <use href="#ExperimentIcon" x="168" y="0" />
+      <g class="selection lastSelection">
+        <circle class="rnw" cx="0" cy="0" r="3"></circle>
+        <circle class="rsw" cx="0" cy="60" r="3"></circle>
+        <circle class="rne" cx="168" cy="0" r="3"></circle>
+        <circle class="rse" cx="168" cy="60" r="3"></circle>
+        <circle class="rn" cx="84" cy="0" r="2"></circle>
+        <circle class="re" cx="168" cy="30" r="2"></circle>
+        <circle class="rs" cx="84" cy="60" r="2"></circle>
+        <circle class="rw" cx="0" cy="30" r="2"></circle>
+      </g>
+      <foreignObject width="168px" height="60px">
+        <div xmlns="http://www.w3.org/1999/xhtml" style="width: 168px; height: 60px">
+          <div>Selected, LastSelection</div>
           <div class="elementType">type</div>
         </div>
       </foreignObject>
@@ -1176,26 +1197,6 @@
       <foreignObject width="168px" height="60px">
         <div xmlns="http://www.w3.org/1999/xhtml" style="width: 168; height: 60px">
           <div>CanvasModelBlock</div>
-        </div>
-      </foreignObject>
-    </g>
-    <g id="ElementLastSelected" transform="translate(192, 528)" class="undefined element selected lastSelection">
-      <rect width="168" height="60" />
-      <use href="#ExperimentIcon" x="168" y="0" />
-      <g class="selection">
-        <circle class="rnw" cx="0" cy="0" r="3"></circle>
-        <circle class="rsw" cx="0" cy="60" r="3"></circle>
-        <circle class="rne" cx="168" cy="0" r="3"></circle>
-        <circle class="rse" cx="168" cy="60" r="3"></circle>
-        <circle class="rn" cx="84" cy="0" r="2"></circle>
-        <circle class="re" cx="168" cy="30" r="2"></circle>
-        <circle class="rs" cx="84" cy="60" r="2"></circle>
-        <circle class="rw" cx="0" cy="30" r="2"></circle>
-      </g>
-      <foreignObject width="168px" height="60px">
-        <div xmlns="http://www.w3.org/1999/xhtml" style="width: 168px; height: 60px">
-          <div>Selected, LastSelection</div>
-          <div class="elementType">type</div>
         </div>
       </foreignObject>
     </g>

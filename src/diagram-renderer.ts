@@ -1,5 +1,5 @@
 import { ArchimateProject, ArchiDiagram, ArchiDiagramChild, ElementPos, ArchiDiagramObject, ArchiEntity, ArchiSourceConnection } from './greeter';
-import { DiagramTemplate } from './diagram-template';
+import { DiagramTemplate, EditInfoElement, ElementSelectionElement } from './diagram-template';
 import { DiagramImageCache } from './diagram-image-cache';
 
 /**
@@ -8,12 +8,22 @@ import { DiagramImageCache } from './diagram-image-cache';
 export class DiagramRenderer {
   private readonly svgDocument: SVGSVGElement;
   public readonly svgContent: SVGGElement;
+  public readonly groupEditInfo: SVGGElement;
+  public readonly groupElementSelection: SVGGElement;
   private readonly sourceConnectionMiddlePoints: Map<string, ElementPos>;
-  private imageCache: DiagramImageCache;
+  private readonly imageCache: DiagramImageCache;
+  private readonly elementSelections = new Map<string, ElementSelectionElement>();
+  private _editInfo: EditInfoElement;
+  private _highlightedElementId: string;
+  private _selectedRelationId: string;
  
   constructor(public readonly project: ArchimateProject, public readonly diagram: ArchiDiagram, public readonly template: DiagramTemplate) {
     this.svgDocument = this.template.getEmptySvg();
     this.svgContent = this.svgDocument.getElementById('content') as SVGGElement;
+    this.groupEditInfo = this.createSvgGElement();
+    this.svgContent.parentElement.appendChild(this.groupEditInfo);
+    this.groupElementSelection = this.createSvgGElement()
+    this.svgContent.parentElement.appendChild(this.groupElementSelection);
 
     this.sourceConnectionMiddlePoints = new Map<string, ElementPos>();
     this.imageCache = new DiagramImageCache(project, this.svgDocument.getElementById('imageDefs') as SVGGElement);
@@ -22,7 +32,7 @@ export class DiagramRenderer {
   public get svg(): SVGSVGElement { return this.svgContent.ownerSVGElement; }
 
   public buildSvg(): SVGSVGElement {
-    const diagramGroup = this.svgContent.ownerDocument.createElementNS(this.svgContent.namespaceURI, 'g');
+    const diagramGroup = this.createSvgGElement();
     diagramGroup.id = this.diagram.Id;
     this.svgContent.appendChild(diagramGroup);
 
@@ -33,6 +43,8 @@ export class DiagramRenderer {
 
     return this.svgDocument;
   }
+
+  private createSvgGElement() { return this.svgContent.ownerDocument.createElementNS(this.svgContent.namespaceURI, 'g') as SVGGElement; }
 
   private setViewBoxSize() {
     const pos = this.diagram.Descendants[0].AbsolutePosition;
@@ -49,11 +61,11 @@ export class DiagramRenderer {
     this.svgDocument.firstElementChild.setAttribute('height', `${(maxY - minY + 20).toFixed(0)}`);
   }
 
-  private addElements(children: ArchiDiagramChild[], parent: Element) {
+  private addElements(children: ArchiDiagramChild[], parent: SVGElement) {
     children.forEach(child => this.addElement(child, parent));
   }
 
-  public addElement(child: ArchiDiagramChild, parent: Element):Element {
+  public addElement(child: ArchiDiagramChild, parent: Element):SVGElement {
     let archiElement = this.project.getById(child.ElementId);
     if (archiElement == null) {
       archiElement = new ArchiEntity();
@@ -192,6 +204,11 @@ export class DiagramRenderer {
     if (div && style != '')
       div.setAttribute('style', style.trimEnd());
 
+    const selection = this.getElementSelection(child.id);
+    if (selection) {
+      selection.setPosition(child.AbsolutePosition.x, child.AbsolutePosition.y, child.bounds.width, child.bounds.height);
+      selection.lastSelected = true;
+    }
     parent.append(e);
     this.addElements(child.Children, e);
     
@@ -265,6 +282,10 @@ export class DiagramRenderer {
     DiagramRenderer.addConnectionText(editPointGroup, sourceConnection, coords);
     DiagramRenderer.addDragPoints(editPointGroup, coords);
 
+    if (sourceConnection.source.id == this.highlightedElementId || sourceConnection.targetId == this.highlightedElementId)
+      editPointGroup.classList.add('highlight');
+    if (this.selectedRelationId == sourceConnection.id)
+      editPointGroup.classList.add('selected');
   }
 
   static addDragPoints(group: Element, coords: ElementPos[]) {
@@ -465,6 +486,80 @@ export class DiagramRenderer {
       end.x = x;
     }
   }
+
+  public get editInfo(): EditInfoElement {
+    if (!this._editInfo) {
+      this._editInfo = this.template.createEditInfo();
+      this.groupEditInfo.appendChild(this._editInfo.element);
+    }
+    return this._editInfo;
+  }
+
+  public removeEditInfo() {
+    this._editInfo = null;
+    this.groupEditInfo.replaceChildren();
+  }
+
+  public getElementSelections(): ElementSelectionElement[] { return Array.from(this.elementSelections.values()); }
+  public getElementSelection(id: string): ElementSelectionElement {
+     return this.elementSelections.get(id);
+  }
+
+  removeElementSelection(id: string) {
+    const s = this.elementSelections.get(id);
+    if (s) {
+      s.element.remove();
+      this.elementSelections.delete(id);
+    }
+  }
+  removeElementSelections() {
+    this.elementSelections.forEach(s => s.element.remove());
+    this.elementSelections.clear();
+  }
+
+  public addElementSelection(id: string): ElementSelectionElement {
+    let result = this.elementSelections.get(id);
+
+    result = this.template.createElementSelection(id);
+    this.elementSelections.set(id, result);
+    this.svgContent.appendChild(result.element);
+    return result;
+  }
+
+  public get highlightedElementId() { return this._highlightedElementId; }
+  public set highlightedElementId(value: string) {
+    if (value == this._highlightedElementId)
+      return;
+    if (this._highlightedElementId != null)
+      this.svgContent.querySelectorAll('g.con.highlight').forEach(e => e.classList.remove('highlight'));
+
+    this._highlightedElementId = value;
+    
+    if (value) {
+      const connectionsToRerender = this.diagram.DescendantsWithSourceConnections.filter(o => o instanceof ArchiSourceConnection && (o.source.id == value || o.targetId == value)) as ArchiSourceConnection[];
+      connectionsToRerender.forEach(c => {
+      const lineG = this.svg.getElementById(c.id);
+      if (lineG)
+        lineG.classList.add('highlight');
+      });
+    }
+  }
+
+  public get selectedRelationId() { return this._selectedRelationId; }
+  public set selectedRelationId(value: string) {
+    if (value == this._selectedRelationId)
+      return;
+    if (this._selectedRelationId)
+      this.svg.getElementById(this._selectedRelationId)?.classList.remove('selected');
+    this._selectedRelationId = value;
+    if (value) {
+      const con = this.svg.getElementById(this._selectedRelationId);
+      if (con) {
+        con.classList.add('selected');
+        const parent = con.parentElement;
+        con.remove();
+        parent.appendChild(con);
+      }
+    }
+  }
 }
-
-

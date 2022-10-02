@@ -79,7 +79,7 @@ export interface IDiagramChange {
 }
 
 export enum ChangeAction {
-  Move,
+  Move = 1,
   Resize,
   Connection,
   Edit,
@@ -92,6 +92,7 @@ export interface IDiagramChangeMove {
   positionOld: IPosSize;
   parentIdNew: string;
   parentIdOld: string;
+  dragCorner: string; 
 }
 
 export interface IPosSize {

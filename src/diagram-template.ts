@@ -30,24 +30,7 @@ export class DiagramTemplate {
     return this.templateDoc.cloneNode(true) as SVGSVGElement;
   }
 
-  public getElementSelection(width: number, height: number): SVGGElement {
-    const selection = this.elementSelection.cloneNode(true) as SVGGElement;
-    selection.childNodes.forEach(cn => {
-      if (cn instanceof SVGCircleElement) {
-        if (cn.cx.baseVal.value === 168)
-          cn.cx.baseVal.value = width;
-        else if (cn.cx.baseVal.value === 168 / 2)
-          cn.cx.baseVal.value = width / 2;
-        if (cn.cy.baseVal.value === 60)
-          cn.cy.baseVal.value = height;
-        else if (cn.cy.baseVal.value === 60 / 2)
-          cn.cy.baseVal.value = height / 2;
-      }
-    });
-    return selection;
-  }
-
-  public getElementByType(archiElement: ArchiEntity, child: ArchiDiagramChild): Element {
+  public getElementByType(archiElement: ArchiEntity, child: ArchiDiagramChild): SVGElement {
     const typeName = archiElement.entityType.split(':').pop();
 
     let es = this.createCloneOfType(typeName);
@@ -77,7 +60,7 @@ export class DiagramTemplate {
       es = es.replace('cx="5" cy="5" rx="5" ry="5"', `cx='${ws}' cy='${ws}' rx='${ws}' ry='${ws}'`);
     }
     const parser = new DOMParser();
-    const e = <Element>parser.parseFromString(es, 'text/xml').firstChild;
+    const e = <Element>parser.parseFromString(es, 'text/xml').firstChild as SVGElement;
     const s = e.querySelector(':scope>path.symbol');
     if (s) {
         if (child.figureType == 1 || archiElement.entityType === 'Meaning') {
@@ -152,10 +135,14 @@ export class DiagramTemplate {
     }
   }
 
-  public getEditInfo(parent: Element): EditInfoElement {
-    const result = new EditInfoElement(this.templateEditInfo.cloneNode(true) as SVGGElement);
-    parent.appendChild(result.element);
-    return result;
+  public createEditInfo(): EditInfoElement {
+    return new EditInfoElement(this.templateEditInfo.cloneNode(true) as SVGGElement);
+  }
+
+  public createElementSelection(id: string): ElementSelectionElement {
+    const element = this.elementSelection.cloneNode(true) as SVGGElement;
+    element.setAttribute('data-element-id', id);
+    return new ElementSelectionElement(id, element);
   }
 }
 
@@ -176,5 +163,48 @@ export class EditInfoElement {
     this.rect.setAttribute('height', `${bbox.height + 4}px`);
 
     this.element.setAttribute('transform', `translate(${x},${y})`);
+  }
+}
+
+export class ElementSelectionElement {
+  private _lastSelected: boolean;
+
+  get lastSelected(): boolean { return this._lastSelected; }
+  set lastSelected(value: boolean) {
+    if (value == this._lastSelected)
+      return;
+    this._lastSelected = value;
+    if (value)
+      this.element.classList.add('lastSelection');
+    else
+      this.element.classList.remove('lastSelection');
+  }
+
+  constructor(public id: string, public readonly element: SVGElement) {
+  }
+
+  public remove() {
+    this.element.remove();
+  }
+
+  public setPosition(x: number, y: number, width: number, height: number) {
+      this.element.setAttribute('transform', `translate(${x},${y})`);
+      this.element.childNodes.forEach(cn => {
+        if (cn instanceof SVGCircleElement) {
+          const c = cn.classList[0];
+          let w = width / 2;
+          let h = height / 2;
+          if (c.indexOf('e') >= 0)
+            w = width;
+          else if (c.indexOf('w') >= 0)
+            w = 0;
+          if (c.indexOf('s') >= 0)
+            h = height;
+          else if (c.indexOf('n') >= 0)
+            h = 0;
+          cn.cx.baseVal.value = w;
+          cn.cy.baseVal.value = h;
+        }
+      });
   }
 }
