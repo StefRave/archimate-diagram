@@ -91,6 +91,7 @@ export class DiagramEditor {
   }
 
   private onTouchStart(evt: TouchEvent) {
+    console.log('onTouchStart ' + this.changeManager.activeAction || this.selectedElement);
     if (this.changeManager.activeAction || this.selectedElement) {
       evt.preventDefault();
       evt.stopImmediatePropagation();
@@ -136,6 +137,7 @@ export class DiagramEditor {
   }
 
   private onPointerMove(evt: PointerEvent) {
+console.log(`onPointerMove ${this.changeManager.activeAction}`);
     if (!this.changeManager.isActive)
       return;
     if (this.changeManager.activeAction == ChangeAction.Edit)
@@ -155,12 +157,13 @@ export class DiagramEditor {
     if (document.activeElement instanceof HTMLElement)
       document.activeElement.blur();
     
+    const snapToGrid = !evt.ctrlKey;
     if (this.changeManager.activeAction == ChangeAction.Move)
-      this.editMoveMove(mouseCoords);
+      this.editMoveMove(mouseCoords, snapToGrid);
     else if (this.changeManager.activeAction == ChangeAction.Resize)
-      this.editResizeMove(delta);
+      this.editResizeMove(delta, snapToGrid);
     else if (this.changeManager.activeAction == ChangeAction.Connection)
-      this.editConnectionEdit(delta, mouseCoords);
+      this.editConnectionEdit(delta, mouseCoords, snapToGrid);
   }
 
   private onPointerUp(evt: PointerEvent) {
@@ -262,9 +265,14 @@ export class DiagramEditor {
       }
     });
   }
-  
-  private editMoveMove(mouseCoords: { x: number; y: number; }) {
-    const newPosition = { x: Math.round((mouseCoords.x - this.startDragMouseOffset.x) / 12) * 12, y: Math.round((mouseCoords.y - this.startDragMouseOffset.y) / 12) * 12 };
+  private static toGrid(xory: number, snapToGrid: boolean) {
+    if (snapToGrid)
+      return Math.round(xory / 12) * 12;
+    return xory;
+  }
+
+  private editMoveMove(mouseCoords: { x: number; y: number; }, snapToGrid: boolean) {
+    const newPosition = { x: DiagramEditor.toGrid(mouseCoords.x - this.startDragMouseOffset.x, snapToGrid), y: DiagramEditor.toGrid(mouseCoords.y - this.startDragMouseOffset.y, snapToGrid) };
     const move = this.changeManager.currentChange.move;
     move.positionNew.x = newPosition.x;
     move.positionNew.y = newPosition.y;
@@ -287,21 +295,36 @@ export class DiagramEditor {
     });
   }
 
-  private editResizeMove(delta: { x: number; y: number; }) {
+  private editResizeMove(delta: { x: number; y: number; }, snapToGrid: boolean) {
     const move = this.changeManager.currentChange.move;
     if (move.dragCorner.indexOf('w') >= 0) {
-      move.positionNew.x = move.positionOld.x + delta.x;
+      const newX = move.positionOld.x + delta.x;
+      move.positionNew.x = DiagramEditor.toGrid(newX, snapToGrid);
+      delta.x += move.positionNew.x - newX;
       move.positionNew.width = move.positionOld.width - delta.x;
+      if (move.positionNew.width < 12) {
+        move.positionNew.x -= 12 - move.positionNew.width;
+        move.positionNew.width = 12;
+      }
     }
     if (move.dragCorner.indexOf('e') >= 0) {
-      move.positionNew.width = move.positionOld.width + delta.x;
+      move.positionNew.width = DiagramEditor.toGrid(move.positionOld.width + delta.x, snapToGrid);
+      if (move.positionNew.width < 12)
+        move.positionNew.width = 12;
     }
     if (move.dragCorner.indexOf('n') >= 0) {
-      move.positionNew.y = move.positionOld.y + delta.y;
+      const newY = move.positionOld.y + delta.y;
+      move.positionNew.y = DiagramEditor.toGrid(newY, snapToGrid);
+      delta.y += move.positionNew.y - newY;
       move.positionNew.height = move.positionOld.height - delta.y;
-    }
+      if (move.positionNew.height < 12) {
+        move.positionNew.y -= 12 - move.positionNew.height;
+        move.positionNew.height = 12;
+      }    }
     if (move.dragCorner.indexOf('s') >= 0) {
-      move.positionNew.height = move.positionOld.height + delta.y;
+      move.positionNew.height = DiagramEditor.toGrid(move.positionOld.height + delta.y, snapToGrid);
+      if (move.positionNew.height < 12)
+        move.positionNew.height = 12;
     }
     this.changeManager.updateChange();
   }
@@ -331,7 +354,7 @@ export class DiagramEditor {
     });
   }
 
-  private editConnectionEdit(delta: { x: number; y: number; }, mouseCoords: { x: number; y: number; }) {
+  private editConnectionEdit(delta: { x: number; y: number; }, mouseCoords: { x: number; y: number; }, snapToGrid: boolean) {
     const change = this.changeManager.currentChange.connection;
     change.bendPointsNew = change.bendPointsOld.map(xy => <IXy>{ x: xy.x, y: xy.y });
     let bendPointIndex = -1;
@@ -349,8 +372,8 @@ export class DiagramEditor {
     else if (change.index > 0 && (change.index / 2 - 1) < change.bendPointsNew.length)
       bendPointIndex = change.index / 2 - 1;
     if (bendPointIndex >= 0) {
-      change.bendPointsNew[bendPointIndex].x = change.bendPointsNew[bendPointIndex].x + delta.x;
-      change.bendPointsNew[bendPointIndex].y = change.bendPointsNew[bendPointIndex].y + delta.y;
+      change.bendPointsNew[bendPointIndex].x = DiagramEditor.toGrid(start.x + change.bendPointsNew[bendPointIndex].x + delta.x, snapToGrid) - start.x;
+      change.bendPointsNew[bendPointIndex].y = DiagramEditor.toGrid(start.y + change.bendPointsNew[bendPointIndex].y + delta.y, snapToGrid) - start.y;
     }
     if (ElementPos.IsInsideBounds(mouseCoords, start, startBounds))
       change.bendPointsNew = change.bendPointsNew.slice(bendPointIndex + 1);
