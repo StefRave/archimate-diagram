@@ -68,7 +68,7 @@ export class ArchimateProjectStorage {
             o = new ArchiEntity();
 
         o.entityType = type;
-        o.Id = e.getAttribute('id');
+        o.id = e.getAttribute('id');
         o.name = e.getAttribute('name');
         o.documentation = e.getAttribute('documentation') ?? e.getElementsByTagName('documentation')[0]?.textContent;
         o.element = e;
@@ -92,9 +92,9 @@ export class ArchimateProject {
         this.version = element.getAttribute('version');
         this.id = element.getAttribute('id');
         this.entitiesById = new Map<string, ArchiEntity>();
-        entities.forEach(o => this.entitiesById.set(o.Id, o));
+        entities.forEach(o => this.entitiesById.set(o.id, o));
         this.relationshipsById = new Map<string, Relationship>();
-        entities.filter(o => o instanceof Relationship).forEach(o => this.relationshipsById.set(o.Id, <Relationship>o));
+        entities.filter(o => o instanceof Relationship).forEach(o => this.relationshipsById.set(o.id, <Relationship>o));
     }
 
     public getById = (id: string) => this.entitiesById.get(id);
@@ -124,16 +124,16 @@ export class ArchimateProject {
     public getUnused(): ArchiEntity[] {
       const usedIds = this.diagrams.flatMap(d => d.DescendantsWithSourceConnections)
         .map(o => (<ArchiDiagramChild>o).ElementId ?? (<ArchiSourceConnection>o).relationShipId).filter(o => o)
-        .concat(this.diagrams.map(d => d.Id));
+        .concat(this.diagrams.map(d => d.id));
       const usedIdsSet = new Set(usedIds);
-      const unusedEntities = asSequence(this.entitiesById.values()).filter(e => !usedIdsSet.has(e.Id));
+      const unusedEntities = asSequence(this.entitiesById.values()).filter(e => !usedIdsSet.has(e.id));
       return unusedEntities.toArray();
     }
 
     public removeEntity(entity: ArchiEntity) {
-      this.entitiesById.delete(entity.Id);
+      this.entitiesById.delete(entity.id);
       if (entity instanceof Relationship)
-        this.relationshipsById.delete(entity.Id);
+        this.relationshipsById.delete(entity.id);
       entity.element.remove();
     }
 }
@@ -142,9 +142,12 @@ export class ArchiEntity {
     public entityType: string;
     public filePath: string;
     public name: string;
-    public Id: string;
+    public id: string;
     public documentation: string;
     public element: Element;
+
+    public get subType() { return this.element.getAttribute('type'); } 
+    public set subType(value: string) { this.element.setAttribute('type', value); } 
 }
 
 export class Relationship extends ArchiEntity {
@@ -190,7 +193,7 @@ export class ArchiDiagram extends ArchiEntity {
         if (this.children == null) {
             this.children = Array.from(this.element.children)
                 .filter(n => n.nodeName == 'children' || n.nodeName == 'child')
-                .map(c => new ArchiDiagramChild(c, this));
+                .map(c => new ArchiDiagramChild(c));
         }
         return this.children;
     }
@@ -280,12 +283,12 @@ export class ArchiDiagramChild extends ArchiDiagramObject {
         if (this.children == null) {
             this.children = Array.from(this.element.children)
                 .filter(n => n.nodeName == 'children' || n.nodeName == 'child')
-                .map(c => new ArchiDiagramChild(c, this.diagram, this));
+                .map(c => new ArchiDiagramChild(c, this));
         }
         return this.children;
     }
 
-    constructor(child: Element, readonly diagram: ArchiDiagram, parent: ArchiDiagramChild = null) {
+    constructor(child: Element, parent: ArchiDiagramChild = null) {
         super(child);
         this._parent = parent;
         this.EntityType = child.getAttribute('xsi:type');
@@ -307,15 +310,15 @@ export class ArchiDiagramChild extends ArchiDiagramObject {
         this.font = child.getAttribute('font');
     }
 
-    changeElementParent(parentElement: ArchiDiagramChild) {
+    changeElementParent(parentElement: ArchiDiagramChild, diagram: ArchiDiagram) {
       if (this.parent)
         this.parent.resetCache();
       else
-        this.diagram.resetCache();
+        diagram.resetCache();
       if (parentElement)
         parentElement.resetCache();
       else
-        this.diagram.resetCache();
+        diagram.resetCache();
         
       this.element.remove();
       this._parent = parentElement;

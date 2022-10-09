@@ -25,11 +25,11 @@ export class ProjectTools {
   }
 
   public static removeDuplicate(e: ArchiEntity, toRemove: ArchiEntity, project: ArchimateProject) {
-    const eSourceRelations = project.getSourceRelationShips(e.Id);
-    const eTargetRelations = project.getTargetRelationShips(e.Id);
+    const eSourceRelations = project.getSourceRelationShips(e.id);
+    const eTargetRelations = project.getTargetRelationShips(e.id);
 
-    const rSourceRelations = project.getSourceRelationShips(toRemove.Id);
-    const rTargetRelations = project.getTargetRelationShips(toRemove.Id);
+    const rSourceRelations = project.getSourceRelationShips(toRemove.id);
+    const rTargetRelations = project.getTargetRelationShips(toRemove.id);
     rSourceRelations.forEach(rr => {
       const erFound = eSourceRelations.firstOrNull(er => er.entityType == rr.entityType && er.target == rr.target);
       if (erFound) {
@@ -37,10 +37,10 @@ export class ProjectTools {
         const sourceConnections = project.diagrams.flatMap(d => d.DescendantsWithSourceConnections)
           .filter(d => d instanceof ArchiSourceConnection)
           .map(d => <ArchiSourceConnection>d)
-          .filter(sc => sc.relationShipId == rr.Id);
-        sourceConnections.forEach(sc => sc.setRelationShipId(erFound.Id));
+          .filter(sc => sc.relationShipId == rr.id);
+        sourceConnections.forEach(sc => sc.setRelationShipId(erFound.id));
       } else {
-        rr.setSource(e.Id);
+        rr.setSource(e.id);
       }
     });
     rTargetRelations.forEach(rr => {
@@ -50,23 +50,23 @@ export class ProjectTools {
         const sourceConnections = project.diagrams.flatMap(d => d.DescendantsWithSourceConnections)
           .filter(d => d instanceof ArchiSourceConnection)
           .map(d => <ArchiSourceConnection>d)
-          .filter(sc => sc.relationShipId == rr.Id);
-        sourceConnections.forEach(sc => sc.setRelationShipId(erFound.Id));
+          .filter(sc => sc.relationShipId == rr.id);
+        sourceConnections.forEach(sc => sc.setRelationShipId(erFound.id));
       } else {
-        rr.setTarget(e.Id);
+        rr.setTarget(e.id);
       }
     });
     const diagramObjectsToRetarget = project.diagrams.flatMap(d => d.Descendants)
-      .filter(d => d.ElementId == toRemove.Id);
-    diagramObjectsToRetarget.forEach(d => d.setElementId(e.Id));
+      .filter(d => d.ElementId == toRemove.id);
+    diagramObjectsToRetarget.forEach(d => d.setElementId(e.id));
     project.removeEntity(toRemove);
   }
 
   public static getEntityRating(e: ArchiEntity, project: ArchimateProject): number {
     return ([].slice.call(e.element.children) as Element[]).filter(e => e.nodeName === 'property').length +
-      project.getRelatedElementForSource(e.Id).count() * 2 +
-      project.getRelatedElementForTarget(e.Id).count() * 2 +
-      (project.getDiagramsWithElementId(e.Id).length - 1) * 4;
+      project.getRelatedElementForSource(e.id).count() * 2 +
+      project.getRelatedElementForTarget(e.id).count() * 2 +
+      (project.getDiagramsWithElementId(e.id).length - 1) * 4;
   }
 
   private static groupBy<T, K extends keyof any>(arr: T[], key: (i: T) => K) {

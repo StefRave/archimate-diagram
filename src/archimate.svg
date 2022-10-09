@@ -14,19 +14,15 @@
       --mainColor: #B5FFFF;
     }
 
-    g.technology {
+    g.technology, g.physical {
       --mainColor: #C9E7B7;
-    }
-
-    g.strategy {
-      --mainColor: #CCCCFF;
     }
 
     g.motivation {
       --mainColor: #d9cfff;
     }
 
-    g.capability {
+    g.strategy {
       --mainColor: #F5DEAA;
     }
 
@@ -34,12 +30,15 @@
       --mainColor: #FFE0E0;
     }
 
-    g.gap {
+    g.plateau {
       --mainColor: #E0FFE0;
     }
 
     g.location {
       --mainColor: #FBB875;
+    }
+    g.grouping {
+      --mainColor: #fff;
     }
 
     g.diagram {
@@ -59,7 +58,7 @@
       fill: var(--mainColor);
       stroke: #000;
     }
-    #content g.element>use.symbol {
+    .content g.element>use.symbol {
       fill: var(--mainColor);
       stroke: #777;
       stroke-width: 1.5;
@@ -67,11 +66,11 @@
       y: 0px;
     }
 
-    #content g.element>use {
+    .content g.element>use {
       stroke-width: 0.5;
       fill: none;
     }
-    #content g.element>use:not(.symbol):not(.img) {
+    .content g.element>use:not(.symbol):not(.img) {
       transform: translate(-9px,9px);
     }
     
@@ -192,7 +191,7 @@
       display: block;
     }
 
-    g.element.group>foreignObject div {
+    g.element.grouping>foreignObject div {
       align-items: flex-start;
       padding: 1px 2px 0px 2px;
       height: 18px !important;
@@ -218,7 +217,7 @@
       fill: #fff;
     }
 
-    g.element.behavior rect {
+    g.element.behavior>rect {
       rx: 10px;
       ry: 10px;
     }
@@ -397,13 +396,13 @@
       <path d="M3-5a1 1 0 0 10 10l-6 0a1 1 0 01-1-10z" />
     </g>
     <g id="ArtifactIcon">
-      <path d="M2 -5 h-7 v12 h11 v-8 h-3.6 v-3.6 l4 4z" />
+      <path d="M2 -6 h-7 v12 h11 v-8 h-3.6 v-3.6 l4 4z" />
     </g>
     <g id="EventIcon">
-      <path d="m2 -4a1 1 0 0 10 10l-11 0 5-5-5-5z" />
+      <path d="m2 -5a1 1 0 0 10 10l-10 0 5-5-5-5z" />
     </g>
     <g id="SystemSoftwareIcon">
-      <path d="m2 5 a 1 1 0 0 0 -7 -7 a 1 1 0 0 0 7 7 c 9.14 -6.61 -1.76 -15.14 -6.46 -7.43" />
+      <path d="m2 4 a 1 1 0 0 0 -7 -7 a 1 1 0 0 0 7 7 c 9.14 -6.61 -1.76 -15.14 -6.46 -7.43" />
     </g>
     <g id="CommunicationNetworkIcon">
       <path d="m4-5 h-8 l-2 8 h8 z" />
@@ -434,15 +433,13 @@
       <rect x="-8" y="0" width="6.5" height="2.3" />
     </g>
     <g id="CapabilityIcon">
-      <rect x="-2" y="-4" fill="none" width="4" height="12" />
-      <rect x="-10" y="4" fill="none" width="12" height="4" />
-      <rect x="-6" y="0" fill="none" width="8" height="8" />
+      <path d="m-7 2v4h12v-12h-4v4h-4v4zm4 0v4m4 0v-8m4 4h-8m4-4h4" />
     </g>
     <g id="ValueStreamIcon">
-      <path d="m -9 -5 h13 l5 5 l-5 5 h-13 l5 -5z" />
+      <path d="m -8 -5 h10 l5 5 l-5 5 h-10 l5 -5z" />
     </g>
-    <g id="ResourceIcon" transform="translate(-25, 4)">
-      <path d="m13-9h11c3 0 3 0 3 2v5c0 2 0 2-2 2h-11c-2 0-2 0-2-2v-5c0-2 0-2 2-2m1 2v5m3 0v-5m3 0v5m6-.5h1.5c1.5 0 1.5 0 1.5-1.5v-1c0-1.5 0-1.5-2-1.5h-1" />
+    <g id="ResourceIcon">
+      <path d="m-8-4h9c3 0 3 0 3 2v5c0 2 0 2-2 2h-9c-2 0-2 0-2-2v-5c0-2 0-2 2-2m.5 2v5m3 0v-5m3 0v5m4.5-.5h1.5c1.5 0 1.5 0 1.5-1.5v-1c0-1.5 0-1.5-2-1.5h-1" />
     </g>
     <g id="EquipmentIcon">
       <path d="m2 4l 0.85 0.49 c 0.1 0.06 0.14 0.17 0.11 0.28 c -0.22 0.71 -0.6 1.36 -1.09 1.89 a 0.24 0.24 90 0 1 -0.3 0.05 l -0.85 -0.49 a 3.83 3.83 90 0 1 -1.22 0.7 v 0.98 a 0.24 0.24 90 0 1 -0.19 0.23 c -0.7 0.16 -1.45 0.17 -2.18 0 c -0.11 -0.02 -0.19 -0.12 -0.19 -0.23 v -0.98 a 3.83 3.83 90 0 1 -1.22 -0.7 l -0.85 0.49 a 0.24 0.24 90 0 1 -0.3 -0.05 c -0.49 -0.53 -0.87 -1.18 -1.09 -1.89 c -0.03 -0.11 0.01 -0.22 0.11 -0.28 l 0.85 -0.49 a 3.87 3.87 90 0 1 0 -1.4 l -0.85 -0.49 c -0.1 -0.06 -0.14 -0.17 -0.11 -0.28 c 0.22 -0.71 0.6 -1.36 1.09 -1.89 a 0.24 0.24 90 0 1 0.3 -0.05 l 0.85 0.49 a 3.83 3.83 90 0 1 1.22 -0.7 v -0.98 a 0.24 0.24 90 0 1 0.19 -0.23 c 0.7 -0.16 1.45 -0.17 2.18 -0 c 0.11 0.02 0.19 0.12 0.19 0.23 v 0.98 a 3.83 3.83 90 0 1 1.22 0.7 l 0.85 -0.49 a 0.24 0.24 90 0 1 0.3 0.05 c 0.49 0.53 0.87 1.18 1.09 1.89 c 0.03 0.11 -0.01 0.22 -0.11 0.28 l -0.85 0.49 a 3.87 3.87 90 0 1 0 1.4 z m -2.18 -0.7 c 0 -0.88 -0.72 -1.6 -1.6 -1.6 s -1.6 0.72 -1.6 1.6 s 0.72 1.6 1.6 1.6 s 1.6 -0.72 1.6 -1.6 zm 6.23 -4.6 l 0.59 0.34 c 0.07 0.04 0.1 0.12 0.08 0.2 c -0.15 0.5 -0.42 0.95 -0.76 1.32 a 0.17 0.17 90 0 1 -0.21 0.03 l -0.59 -0.34 a 2.68 2.68 90 0 1 -0.85 0.49 v 0.69 a 0.17 0.17 90 0 1 -0.13 0.16 c -0.49 0.11 -1.01 0.12 -1.53 0 c -0.08 -0.01 -0.13 -0.08 -0.13 -0.16 v -0.69 a 2.68 2.68 90 0 1 -0.85 -0.49 l -0.59 0.34 a 0.17 0.17 90 0 1 -0.21 -0.03 c -0.34 -0.37 -0.61 -0.83 -0.76 -1.32 c -0.02 -0.08 0.01 -0.15 0.08 -0.2 l 0.59 -0.34 a 2.71 2.71 90 0 1 0 -0.98 l -0.59 -0.34 c -0.07 -0.04 -0.1 -0.12 -0.08 -0.2 c 0.15 -0.5 0.42 -0.95 0.76 -1.32 a 0.17 0.17 90 0 1 0.21 -0.03 l 0.59 0.34 a 2.68 2.68 90 0 1 0.85 -0.49 v -0.69 a 0.17 0.17 90 0 1 0.13 -0.16 c 0.49 -0.11 1.01 -0.12 1.53 0 c 0.08 0.01 0.13 0.08 0.13 0.16 v 0.69 a 2.68 2.68 90 0 1 0.85 0.49 l 0.59 -0.34 a 0.17 0.17 90 0 1 0.21 0.03 c 0.34 0.37 0.61 0.83 0.76 1.32 c 0.02 0.08 -0.01 0.15 -0.08 0.2 l -0.59 0.34 a 2.71 2.71 90 0 1 0 0.98 z m -1.53 -0.49 c 0 -0.62 -0.5 -1.12 -1.12 -1.12 s -1.12 0.5 -1.12 1.12 s 0.5 1.12 1.12 1.12 s 1.12 -0.5 1.12 -1.12 z" />
@@ -468,10 +465,10 @@
       <path d="m0 -7 l 0 14 m -7 -7 l 14 0 m -12.6 -5.6 l 11.2 11.2 m 0 -11.2 l -11.2 11.2" />
     </g>
     <g id="ConstraintIcon">
-      <path d="m7-4 h-10 l -4 8 h 10 z m -9 0 l -4 8" />
+      <path d="m7-4 h-11 l -4 8 h 11 z m -9 0 l -4 8" />
     </g>
     <g id="RequirementIcon">
-      <path d="M7-4 h-10 l-4 8 h10z" />
+      <path d="M7-4 h-11 l-4 8 h11z" />
     </g>
     <g id="OutcomeIcon">
       <ellipse rx="7" ry="7" />
@@ -488,14 +485,14 @@
     </g>
 
     <g id="LocationIcon">
-      <path d="m4 0 a 1 1 0 0 0 -10 0 q 0 3 5 10 q 5 -7 5 -10z" />
+      <path d="m4-3 a 1 1 0 0 0 -10 0 q 0 3 5 10 q 5 -7 5 -10z" />
     </g>
     <g id="GapIcon">
       <ellipse rx="6" ry="6" />
-      <path d="m -9 -1.5 h 18 m -18 3 h 18" fill="none" />
+      <path d="m -8 -1.5 h 16 m -15 3 h 16" fill="none" />
     </g>
     <g id="PlateauIcon">
-      <path d="m-5 -3 h 12 m -14 3 h 12 m -14 3 h 12" fill="none" />
+      <path d="m-4 -3 h11 m-13 3 h 11 m -13 3 h 11" fill="none" />
     </g>
     <g id="TodoIcon">
       <text x="-2" y="6" fill="#000000" font-family="Helvetica" font-size="16px" text-anchor="middle">&#x1F937;</text>
@@ -504,44 +501,44 @@
       <text x="-2" y="6" fill="#000000" font-family="Helvetica" font-size="16px" text-anchor="middle">&#x1F9ea;</text>
     </g>
     <g id="ObjectIcon">
-      <rect x="-9" y="-7" width="16" height="12" />
-      <path d="M -9 -4 l 16 0" />
+      <rect x="-8" y="-7" width="14" height="12" />
+      <path d="M -8 -4 l 14 0" />
     </g>
     <g id="ContractIcon">
-      <rect x="-9" y="-7" width="16" height="12" />
-      <path d="M -9 -4 l 16 0" />
-      <path d="M -9 2 l 16 0" />
+      <rect x="-8" y="-7" width="14" height="12" />
+      <path d="M -8 -4 l 14 0" />
+      <path d="M -8 2 l 14 0" />
     </g>
     <g id="RepresentationIcon">
-      <path d="m-9-7 16 0 0 10c-8-6-8 6-16 0zm0 3 16 0" />
+      <path d="m-8-7 14 0 0 10c-7-6-7 6-14 0zm0 3 14 0" />
     </g>
     <g id="ProductIcon">
-      <rect x="-9" y="-7" width="16" height="12" />
-      <path d="M -9 -4 l 9 0 l 0 -3" fill="none" />
+      <rect x="-8" y="-7" width="14" height="12" />
+      <path d="M -8 -4 l 8 0 l 0 -3" fill="none" />
     </g>
     <g id="NodeIcon">
-      <path d="M -9 -4 l 3 -3 l 13 0 l 0 10 l -3 3 l -13 0z" />
-      <rect x="-9" y="-4" width="13" height="10" />
+      <path d="M -8 -4 l 3 -3 l 12 0 l 0 10 l -3 3 l -13 0z" />
+      <rect x="-8" y="-4" width="12" height="10" />
       <path d="M4 -4 l 3 -3"  />
     </g>
     <g id="DeviceIcon">
-      <path d="M-6 2 l -3 3 l 16 0 l -3 -3z" />
-      <rect x="-9" y="-7" width="16" height="9" rx="2" />
+      <path d="M-5 2 l -3 3 l 14 0 l -3 -3z" />
+      <rect x="-8" y="-7" width="14" height="9" rx="2" />
     </g>
     <g id="WorkPackageIcon">
-      <rect x="-9" y="-7" width="16" height="11" rx="4" />
+      <rect x="-8" y="-7" width="14" height="11" rx="4" />
     </g>
     <g id="DeliverableIcon">
-      <path d="M-9 -6 l 16 0 l 0 10c -8 -6 -8 6 -16 0 Z" />
+      <path d="M-8 -6 l 14 0 l 0 10c -7 -6 -7 6 -14 0 Z" />
     </g>
     <g id="MeaningIcon">
       <path d="M.1-4.1C1.1-4.8 3.1-5.3 5.2-4.5 6.3-5.4 7.9-2.9 6.3-2.1 7.2-2.9 7.4 2.5 6.1 2.8 5.9 5.1 4.1 5.4 1.4 4.6-.5 5-6.3 5.4-5.3 4-7.3 4-7.5-1.8-6.2-2.3-8-4.2-5.6-5.7-3.5-4.5-2.6-5.4-.4-4.8.1-4.1" />
     </g>
     <g id="NoteIcon">
-      <path d="m-8 -7 h14 v8 l-3 3 h-11 z" />
+      <path d="m-7 -7 h14 v8 l-3 3 h-11 z" />
     </g>
-    <g id="GroupIcon">
-      <path d="m-8 -5 h14 v9 h-14 v-11 h6 v2" />
+    <g id="GroupingIcon">
+      <path d="m-7 -5 h14 v9 h-14 v-11 h6 v2" />
     </g>
     <g id="ValueIcon">
       <ellipse rx="8" ry="4" />
@@ -600,7 +597,7 @@
   </defs>
 
   <rect x="-12000" y="-12000" width="24000" height="24000" fill="url(#grid)" style="pointer-events: none" />
-  <g id="content">
+  <g id="content" class="content">
     <g id="BusinessActor" transform="translate(12, 24)" class="business active element icon">
       <rect width="168" height="60" />
       <use href="#ActorIcon" x="168" y="0" />
@@ -696,7 +693,7 @@
       </foreignObject>
     </g>
 
-    <g id="Capability" transform="translate(192, 456)" class="capability behavior element">
+    <g id="Capability" transform="translate(192, 456)" class="strategy behavior element">
       <rect width="168" height="60" />
       <use href="#CapabilityIcon" x="168" y="0" />
       <foreignObject width="168px" height="60px">
@@ -706,18 +703,7 @@
       </foreignObject>
     </g>
 
-
-    <g id="Capability" transform="translate(192, 456)" class="capability behavior element">
-      <rect width="168" height="60" />
-      <use href="#CapabilityIcon" x="168" y="0" />
-      <foreignObject width="168px" height="60px">
-        <div xmlns="http://www.w3.org/1999/xhtml" style="width: 168px; height: 60px">
-          <div>Capability</div>
-        </div>
-      </foreignObject>
-    </g>
-
-    <g id="Resource" transform="translate(12, 456)" class="capability behavior element">
+    <g id="Resource" transform="translate(12, 456)" class="strategy behavior element">
       <rect width="168" height="60" />
       <use href="#ResourceIcon" x="168" y="0" />
       <foreignObject width="168px" height="60px">
@@ -726,7 +712,7 @@
         </div>
       </foreignObject>
     </g>
-    <g id="ValueStream" transform="translate(372, 456)" class="capability behavior element">
+    <g id="ValueStream" transform="translate(372, 456)" class="strategy behavior element">
       <rect width="168" height="60" />
       <use href="#ValueStreamIcon" x="168" y="0" />
       <path class="symbol" d="m0 0 l5 5 l-5 5 h13 l5 -5 l-5 -5z" data-size-hint="5 10 13" transform="scale(6)" />
@@ -736,7 +722,7 @@
         </div>
       </foreignObject>
     </g>
-    <g id="CourseOfAction" transform="translate(552, 456)" class="capability behavior element">
+    <g id="CourseOfAction" transform="translate(552, 456)" class="strategy behavior element">
       <rect width="168" height="60" />
       <use href="#CourseOfActionIcon" x="168" y="0" />
       <foreignObject width="168px" height="60px">
@@ -799,7 +785,7 @@
       </foreignObject>
     </g>
 
-    <g id="Grouping" transform="translate(12, 312)" class="group element">
+    <g id="Grouping" transform="translate(12, 312)" class="grouping element">
       <path fill="white" d="M168,18 l-12,0 l0,-18 l-156,0 l0,60 l168,0 z" stroke-dasharray="8,4" />
       <path fill="none" stroke-dasharray="8,4" d="M 0 18 l 156 0" />
       <foreignObject width="156px" height="16px">
@@ -819,7 +805,7 @@
       </foreignObject>
     </g>
 
-    <g id="Group" transform="translate(12, 384)" class="group element">
+    <g id="Group" transform="translate(12, 384)" class="grouping element">
       <path fill="#ccc" d="M168,18 l-12,0 l0,-18 l-156,0 l0,60 l168,0 z" />
       <path d="M 0 18 l 156 0" stroke="#eee`" />
       <foreignObject width="156px" height="16px">
@@ -1069,7 +1055,6 @@
       </foreignObject>
     </g>
 
-
     <g id="Location" transform="translate(552, 878)" class="location element">
       <rect width="168" height="60" />
       <use href="#LocationIcon" x="168" y="0" />
@@ -1080,8 +1065,8 @@
       </foreignObject>
     </g>
 
-    <g id="Gap" transform="translate(372, 808)" class="gap element">
-      <path d="M 0 0 l 168 0 l 0 60 c -84 -16 -84 16 -168 0 Z" />
+    <g id="Gap" transform="translate(372, 808)" class="plateau element">
+      <path d="M 0 0 l 168 0 l 0 56 c -84 -16 -84 16 -168 0 Z" />
       <use href="#GapIcon" x="168" y="0" />
       <foreignObject width="168px" height="60px">
         <div xmlns="http://www.w3.org/1999/xhtml" style="width: 168px; height: 60px">
@@ -1090,7 +1075,7 @@
       </foreignObject>
     </g>
 
-    <g id="Plateau" transform="translate(552, 808)" class="gap structure element">
+    <g id="Plateau" transform="translate(552, 808)" class="plateau structure element">
       <path d="M 0 8 l 8 -8 l 160 0 l 0 52 l -8 8 l -160 0z" />
       <rect x="0" y="8" width="160" height="52" />
       <path fill="none" d="M168 0 l -8 8" fill-rule="evenodd" />
@@ -1112,7 +1097,7 @@
     </g>
 
     <g id="Deliverable" transform="translate(372, 878)" class="implementation element">
-      <path d="M 0 0 l 168 0 l 0 60 c -84 -16 -84 16 -168 0 Z" />
+      <path d="M 0 0 l 168 0 l 0 56 c -84 -16 -84 16 -168 0 Z" />
       <foreignObject width="168px" height="60px">
         <div xmlns="http://www.w3.org/1999/xhtml" style="width: 168px; height: 60px">
           <div>Deliverable</div>
@@ -1381,7 +1366,7 @@
       <use href="#CommunicationNetworkIcon" />
     </g>
     <g transform="translate(80, 72)" class="technology element">
-      <!-- <rect width="20" height="20" /> -->
+      <rect width="20" height="20" />
       <use href="#ArtifactIcon" />
     </g>
     <g transform="translate(0, 96)" class="technology element">
@@ -1456,7 +1441,7 @@
       <rect width="20" height="20" />
       <use href="#ValueIcon" />
     </g>
-    <g transform="translate(80, 168)" class="capability element">
+    <g transform="translate(80, 168)" class="strategy element">
       <rect width="20" height="20" />
       <use href="#CourseOfActionIcon" />
     </g>
@@ -1466,11 +1451,19 @@
     </g>
     <g transform="translate(20, 192)" class="undefined element">
       <rect width="20" height="20" />
-      <use href="#GroupIcon" />
+      <use href="#GroupingIcon" />
     </g>
-    <g transform="translate(0, 216)" class="capability element">
+    <g transform="translate(0, 216)" class="strategy element">
       <rect width="20" height="20" />
       <use href="#ValueStreamIcon" />
+    </g>
+    <g transform="translate(20, 216)" class="strategy element">
+      <rect width="20" height="20" />
+      <use href="#ResourceIcon" />
+    </g>
+    <g transform="translate(40, 216)" class="strategy element">
+      <rect width="20" height="20" />
+      <use href="#CapabilityIcon" />
     </g>
   </g>
 </svg>

@@ -1,0 +1,7 @@
+.palettePreview {
+    display: none;
+  }
+
+.palette:hover .palettePreview {
+  display: block;
+}

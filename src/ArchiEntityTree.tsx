@@ -40,7 +40,7 @@ export class ArchiEntityTree extends Component<ArchiEntityTreeProps> {
       <ul class="nested active">{this.renderChildren(Array.from(folder.children))}</ul>
     </li>;
   }
-
+ 
   renderDiagramElement(element: Element): VNode {
     const diagramId: string = element.getAttribute('id');
     const classActive = (diagramId == this.props.active) ? 'active' : '';

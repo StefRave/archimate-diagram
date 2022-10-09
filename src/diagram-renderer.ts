@@ -33,7 +33,7 @@ export class DiagramRenderer {
 
   public buildSvg(): SVGSVGElement {
     const diagramGroup = this.createSvgGElement();
-    diagramGroup.id = this.diagram.Id;
+    diagramGroup.id = this.diagram.id;
     this.svgContent.appendChild(diagramGroup);
 
     this.addElements(this.diagram.Children, diagramGroup);
@@ -144,12 +144,11 @@ export class DiagramRenderer {
       rect.setAttribute('stroke', borderColor);
     }
 
-    e.setAttribute('transform', `translate(${child.bounds.x}, ${child.bounds.y})`);
     e.setAttribute('id', child.id.toString());
     if (div != null) {
       div.setAttribute('contenteditable', 'true');
 
-      if (!e.classList.contains('group') && !e.classList.contains('note')) {
+      if (!e.classList.contains('grouping') && !e.classList.contains('note')) {
         div.textContent = archiElement.name;
         const d = e.ownerDocument.createElementNS(div.namespaceURI, 'div');
         d.textContent = archiElement.entityType;
@@ -161,7 +160,6 @@ export class DiagramRenderer {
           const d = e.ownerDocument.createElementNS(div.namespaceURI, 'div');
           if (t != '')
             d.textContent = t;
-          // d.appendChild(e.ownerDocument.createElementNS(div.namespaceURI, 'br'));
           div.appendChild(d);
         });
       }
@@ -344,7 +342,7 @@ export class DiagramRenderer {
     editPointGroup.setAttribute('id', sourceConnection.id);
     editPointGroup.setAttribute('class', 'con');
     if (relationEntity)
-      editPointGroup.setAttribute('data-rel', relationEntity.Id);
+      editPointGroup.setAttribute('data-rel', relationEntity.id);
 
     group.appendChild(editPointGroup);
     return editPointGroup;

@@ -1,22 +1,23 @@
 {
-	"compilerOptions": {
+  "compilerOptions": {
     "jsx": "react",
     "jsxFactory": "h",
     "jsxFragmentFactory": "Fragment",
-		"outDir": "./dist/",
-		"sourceMap": true,
-		"noImplicitAny": true,
-		"module": "ES2020",
+    "outDir": "./dist/",
+    "sourceMap": true,
+    "noImplicitAny": true,
+    "module": "ES2020",
     "moduleResolution": "Node",
-		"target": "ES2017",
-		"declaration": false,
-		"allowSyntheticDefaultImports": true,
-		"esModuleInterop": true,
-		"lib": [ "es2021", "DOM" ]
-	},
-	"include": [
-		"src/**/*",
+    "target": "ES2017",
+    "declaration": false,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "lib": [ "es2021", "DOM" ],
+    "plugins": [{ "name": "typescript-plugin-css-modules" }]
+  },
+  "include": [
+    "src/**/*",
     "custom.d.ts"
-	],
+  ],
   "exclude": ["node_modules", "dist"]
 }

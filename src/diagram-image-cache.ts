@@ -41,7 +41,6 @@ export class DiagramImageCache {
   private async loadImage(imagePath: string) {
     const imageData = await this.project.getImage(imagePath)
     
-    console.log('ImageCache1');
     const base64String = Base64.fromUint8Array(imageData);
     const fileExtension = imagePath.split('.').pop();
     
@@ -51,7 +50,6 @@ export class DiagramImageCache {
     img.setAttribute('src', `data:image/${fileExtension};base64, ${base64String}`);
 
     img.onload = () => {
-      console.log('ImageCacheDone' + img);
       // eslint-disable-next-line no-useless-escape
       const badChar = /[\w\-\:\.]/g;
       let id = 'img_' + imagePath.replace(badChar, '');

@@ -4,6 +4,7 @@ import { ArchiEntityTree } from './ArchiEntityTree';
 import { DiagramEditor } from './diagram-editor';
 import { DiagramRenderer } from './diagram-renderer';
 import { DiagramTemplate } from './diagram-template';
+import { ElementPalette } from './ElementPalette';
 import { ArchiDiagram, ArchimateProject, ArchimateProjectStorage } from './greeter';
 import { Base64 } from './util/base64';
 
@@ -48,7 +49,7 @@ export class ArchiEditor extends Component<ArchiEditorProps, ArchiEditorState> {
   }
 
   private async changeView(viewId: string) {
-    const diagram = this.state.project.diagrams.filter(d => d.Id === viewId)[0] ?? this.state.project.diagrams[0];
+    const diagram = this.state.project.diagrams.filter(d => d.id === viewId)[0] ?? this.state.project.diagrams[0];
     this.displayDiagram(this.state.project, diagram);
   }
 
@@ -160,8 +161,9 @@ export class ArchiEditor extends Component<ArchiEditorProps, ArchiEditorState> {
       <div class="grid">
         <div id="leftThing" class="split split-horizontal">
           <ul id="diagramTree">
-            <ArchiEntityTree project={this.state.project} active={this.state.diagram?.Id} onDiagramSelected={(viewId) => this.changeView(viewId)} />
+            <ArchiEntityTree project={this.state.project} active={this.state.diagram?.id} onDiagramSelected={(viewId) => this.changeView(viewId)} />
           </ul>
+          <ElementPalette />
         </div>
         <div class="vertical-gutter"></div>
         <div id="svgTarget" class="split split-horizontal">

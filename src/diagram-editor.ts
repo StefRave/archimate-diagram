@@ -58,7 +58,6 @@ export class DiagramEditor {
   }
 
   private onFocusIn(evt: FocusEvent) {
-    console.log('onFocusIn');
   }
 
   private onFocusOut(evt: FocusEvent) {
@@ -137,7 +136,6 @@ export class DiagramEditor {
   }
 
   private onPointerMove(evt: PointerEvent) {
-console.log(`onPointerMove ${this.changeManager.activeAction}`);
     if (!this.changeManager.isActive)
       return;
     if (this.changeManager.activeAction == ChangeAction.Edit)
@@ -223,7 +221,7 @@ console.log(`onPointerMove ${this.changeManager.activeAction}`);
     const text = this.getTextFromElement(element);
     this.changeManager.startChange(<IDiagramChange>{
       action: ChangeAction.Edit,
-      diagramId: this.diagram.Id,
+      diagramId: this.diagram.id,
       edit: {
         elementId: element.id,
         textNew: text,
@@ -255,13 +253,13 @@ console.log(`onPointerMove ${this.changeManager.activeAction}`);
 
     this.changeManager.startChange(<IDiagramChange>{
       action: ChangeAction.Move,
-      diagramId: this.diagram.Id,
+      diagramId: this.diagram.id,
       move: {
         elementId: this.selectedElement.id,
         positionNew: { x: diagramElement.AbsolutePosition.x, y: diagramElement.AbsolutePosition.y, width: diagramElement.bounds.width, height: diagramElement.bounds.height },
         positionOld: { x: diagramElement.bounds.x, y: diagramElement.bounds.y, width: diagramElement.bounds.width, height: diagramElement.bounds.height },
-        parentIdNew: this.diagram.Id,
-        parentIdOld: diagramElement.parent?.id ?? this.diagram.Id,
+        parentIdNew: this.diagram.id,
+        parentIdOld: diagramElement.parent?.id ?? this.diagram.id,
       }
     });
   }
@@ -283,13 +281,13 @@ console.log(`onPointerMove ${this.changeManager.activeAction}`);
     const diagramElement = this.diagram.GetDiagramObjectById(this.selectedElement.id) as ArchiDiagramChild;
     this.changeManager.startChange(<IDiagramChange>{
       action: ChangeAction.Resize,
-      diagramId: this.diagram.Id,
+      diagramId: this.diagram.id,
       move: {
         elementId: this.selectedElement.id,
         positionNew: { x: diagramElement.bounds.x, y: diagramElement.bounds.y, width: diagramElement.bounds.width, height: diagramElement.bounds.height },
         positionOld: { x: diagramElement.bounds.x, y: diagramElement.bounds.y, width: diagramElement.bounds.width, height: diagramElement.bounds.height },
-        parentIdNew: diagramElement.parent?.id ?? this.diagram.Id,
-        parentIdOld: diagramElement.parent?.id ?? this.diagram.Id,
+        parentIdNew: diagramElement.parent?.id ?? this.diagram.id,
+        parentIdOld: diagramElement.parent?.id ?? this.diagram.id,
         dragCorner: target.classList.item(0)
       }
     });
@@ -343,7 +341,7 @@ console.log(`onPointerMove ${this.changeManager.activeAction}`);
 
     this.changeManager.startChange(<IDiagramChange>{
       action: ChangeAction.Connection,
-      diagramId: this.diagram.Id,
+      diagramId: this.diagram.id,
       connection: {
         index: index,
         sourceConnectionId: sourceConnection.id,
@@ -462,11 +460,11 @@ class EditMoveAction extends EditAction {
     }
 
     const element = renderer.diagram.GetDiagramObjectById(change.elementId) as ArchiDiagramChild
-    const parentElement = change.parentIdNew  == renderer.diagram.Id ? null : renderer.diagram.GetDiagramObjectById(change.parentIdNew) as ArchiDiagramChild
+    const parentElement = change.parentIdNew  == renderer.diagram.id ? null : renderer.diagram.GetDiagramObjectById(change.parentIdNew) as ArchiDiagramChild
 
     if (element.parent != parentElement) {
       if (parentElement != null)
-        element.changeElementParent(parentElement);
+        element.changeElementParent(parentElement, renderer.diagram);
       else
         element.changeElementParentDiagram(renderer.diagram);
     }
