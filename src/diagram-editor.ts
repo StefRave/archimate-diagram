@@ -25,7 +25,6 @@ export class DiagramEditor {
     this.svg.addEventListener('pointermove', (evt) => this.onPointerMove(evt));
     this.svg.addEventListener('pointerup', (evt) => this.onPointerUp(evt));
     this.svg.addEventListener('focusout', (evt) => this.onFocusOut(evt));
-    this.svg.addEventListener('focusin', (evt) => this.onFocusIn(evt));
     this.svg.addEventListener('input', (evt) => this.onInput(evt));
 
     this.svg.ownerDocument.addEventListener('keydown', this.keyDownFunction);
@@ -55,9 +54,6 @@ export class DiagramEditor {
     else if (evt.key == 'y' && evt.ctrlKey) {
       this.changeManager.redo();
     }
-  }
-
-  private onFocusIn(evt: FocusEvent) {
   }
 
   private onFocusOut(evt: FocusEvent) {
@@ -194,7 +190,7 @@ export class DiagramEditor {
         s.lastSelected = false;
     });
     if (this.selectedElement && (!controlKeyDown || !elementIsAlreadySelected)) {
-      const selectedEntity = this.diagram.GetDiagramObjectById(this.selectedElement.id) as ArchiDiagramChild;
+      const selectedEntity = this.diagram.getDiagramObjectById(this.selectedElement.id) as ArchiDiagramChild;
       const elementSelection = this.renderer.addElementSelection(this.selectedElementId);
       elementSelection.setPosition(
         selectedEntity.AbsolutePosition.x, selectedEntity.AbsolutePosition.y,
@@ -248,7 +244,7 @@ export class DiagramEditor {
   }
   
   private editMoveStart() {
-    const diagramElement = this.diagram.GetDiagramObjectById(this.selectedElement.id) as ArchiDiagramChild;
+    const diagramElement = this.diagram.getDiagramObjectById(this.selectedElement.id) as ArchiDiagramChild;
     this.startDragMouseOffset = { x: this.startDragMousePosition.x - diagramElement.AbsolutePosition.x, y: this.startDragMousePosition.y - diagramElement.AbsolutePosition.y };
 
     this.changeManager.startChange(<IDiagramChange>{
@@ -278,7 +274,7 @@ export class DiagramEditor {
   }
 
   private editResizeStart(target: SVGElement) {
-    const diagramElement = this.diagram.GetDiagramObjectById(this.selectedElement.id) as ArchiDiagramChild;
+    const diagramElement = this.diagram.getDiagramObjectById(this.selectedElement.id) as ArchiDiagramChild;
     this.changeManager.startChange(<IDiagramChange>{
       action: ChangeAction.Resize,
       diagramId: this.diagram.id,
@@ -334,10 +330,10 @@ export class DiagramEditor {
       index++;
       sibling = sibling.previousElementSibling;
     }
-    const sourceConnection = this.diagram.GetDiagramObjectById(target.parentElement.id) as ArchiSourceConnection;
+    const sourceConnection = this.diagram.getDiagramObjectById(target.parentElement.id) as ArchiSourceConnection;
     const bendPointsOld = sourceConnection.bendPoints.map(bp => <IXy>{ x: bp.x, y: bp.y });
     const [start] = this.renderer.getAbsolutePositionAndBounds(sourceConnection.source);
-    const [end] = this.renderer.getAbsolutePositionAndBounds(this.diagram.GetDiagramObjectById(sourceConnection.targetId));
+    const [end] = this.renderer.getAbsolutePositionAndBounds(this.diagram.getDiagramObjectById(sourceConnection.targetId));
 
     this.changeManager.startChange(<IDiagramChange>{
       action: ChangeAction.Connection,
@@ -357,9 +353,9 @@ export class DiagramEditor {
     change.bendPointsNew = change.bendPointsOld.map(xy => <IXy>{ x: xy.x, y: xy.y });
     let bendPointIndex = -1;
 
-    const sourceConnection = this.diagram.GetDiagramObjectById(change.sourceConnectionId) as ArchiSourceConnection;
+    const sourceConnection = this.diagram.getDiagramObjectById(change.sourceConnectionId) as ArchiSourceConnection;
     const [start, startBounds] = this.renderer.getAbsolutePositionAndBounds(sourceConnection.source);
-    const [end, endBounds] = this.renderer.getAbsolutePositionAndBounds(this.diagram.GetDiagramObjectById(sourceConnection.targetId));
+    const [end, endBounds] = this.renderer.getAbsolutePositionAndBounds(this.diagram.getDiagramObjectById(sourceConnection.targetId));
     const connectionCoords = DiagramRenderer.calculateConnectionCoords(start, startBounds, end, endBounds, sourceConnection);
 
     if (change.index % 2 == 1) /* intermediate point */ {
@@ -452,22 +448,16 @@ class EditMoveAction extends EditAction {
 
     if (diagramChange.action == ChangeAction.Move && changeState == ChangeState.Final) {
       if (this.selectedDropTarget) {
-        const dropElement = renderer.diagram.GetDiagramObjectById(this.selectedDropTarget.id) as ArchiDiagramChild;
+        const dropElement = renderer.diagram.getDiagramObjectById(this.selectedDropTarget.id) as ArchiDiagramChild;
         change.parentIdNew = this.selectedDropTarget.id;
         change.positionNew.x -= dropElement.AbsolutePosition.x;
         change.positionNew.y -= dropElement.AbsolutePosition.y;
       }
     }
 
-    const element = renderer.diagram.GetDiagramObjectById(change.elementId) as ArchiDiagramChild
-    const parentElement = change.parentIdNew  == renderer.diagram.id ? null : renderer.diagram.GetDiagramObjectById(change.parentIdNew) as ArchiDiagramChild
-
-    if (element.parent != parentElement) {
-      if (parentElement != null)
-        element.changeElementParent(parentElement, renderer.diagram);
-      else
-        element.changeElementParentDiagram(renderer.diagram);
-    }
+    const element = renderer.diagram.getDiagramObjectById(change.elementId) as ArchiDiagramChild
+    const parentElement = change.parentIdNew == renderer.diagram.id ? null : renderer.diagram.getDiagramObjectById(change.parentIdNew) as ArchiDiagramChild
+    element.parent = parentElement;
     element.bounds = new ElementBounds(change.positionNew.x, change.positionNew.y, change.positionNew.width, change.positionNew.height);
   }
 
@@ -475,7 +465,7 @@ class EditMoveAction extends EditAction {
     const move = change.move;
     let element = renderer.svg.getElementById(move.elementId) as SVGElement
     const parent = renderer.svg.getElementById(move.parentIdNew) as SVGGElement;
-    const diagramElement = renderer.diagram.GetDiagramObjectById(move.elementId) as ArchiDiagramChild
+    const diagramElement = renderer.diagram.getDiagramObjectById(move.elementId) as ArchiDiagramChild
     element.remove();
     element = renderer.addElement(diagramElement, parent);
 
@@ -526,9 +516,9 @@ class EditMoveAction extends EditAction {
 class EditConnectionAction extends EditAction {
   public doDiagramChange(diagramChange: IDiagramChange, renderer: DiagramRenderer, project: ArchimateProject, changeState: ChangeState): void {
     const change = diagramChange.connection;
-    const sourceConnection = renderer.diagram.GetDiagramObjectById(change.sourceConnectionId) as ArchiSourceConnection;
+    const sourceConnection = renderer.diagram.getDiagramObjectById(change.sourceConnectionId) as ArchiSourceConnection;
     const bendPoints = change.bendPointsNew.map(xy => <ElementPos>{ x: xy.x, y: xy.y});
-    sourceConnection.setBendPoints(bendPoints, change.targetOffset.x, change.targetOffset.y);
+    sourceConnection.bendPoints = bendPoints;
   }
 
   public doSvgChange(change: IDiagramChange, renderer: DiagramRenderer): void {
@@ -540,9 +530,9 @@ class EditConnectionAction extends EditAction {
 class EditEditAction extends EditAction {
   public doDiagramChange(diagramChange: IDiagramChange, renderer: DiagramRenderer, project: ArchimateProject, changeState: ChangeState): void {
     const change = diagramChange.edit;
-    const element = renderer.diagram.GetDiagramObjectById(change.elementId) as ArchiDiagramChild
-    if (element.ElementId) {
-      const archiElement = project.getById(element.ElementId)
+    const element = renderer.diagram.getDiagramObjectById(change.elementId) as ArchiDiagramChild
+    if (element.elementId) {
+      const archiElement = project.getById(element.elementId)
       archiElement.name = change.textNew;
     } else {
       element.content = change.textNew;
@@ -554,7 +544,7 @@ class EditEditAction extends EditAction {
     if (changeState == ChangeState.Final) { // don't render in case editing is performed by the
       const element = renderer.svg.getElementById(edit.elementId) as SVGElement
       const parent = element.parentElement;
-      const diagramElement = renderer.diagram.GetDiagramObjectById(edit.elementId) as ArchiDiagramChild
+      const diagramElement = renderer.diagram.getDiagramObjectById(edit.elementId) as ArchiDiagramChild
       element.remove();
       renderer.addElement(diagramElement, parent);
     }

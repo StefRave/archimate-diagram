@@ -34,31 +34,31 @@ export class ProjectTools {
       const erFound = eSourceRelations.firstOrNull(er => er.entityType == rr.entityType && er.target == rr.target);
       if (erFound) {
         project.removeEntity(rr);
-        const sourceConnections = project.diagrams.flatMap(d => d.DescendantsWithSourceConnections)
+        const sourceConnections = project.diagrams.flatMap(d => d.descendantsWithSourceConnections)
           .filter(d => d instanceof ArchiSourceConnection)
           .map(d => <ArchiSourceConnection>d)
           .filter(sc => sc.relationShipId == rr.id);
-        sourceConnections.forEach(sc => sc.setRelationShipId(erFound.id));
+        sourceConnections.forEach(sc => sc.relationShipId = erFound.id);
       } else {
-        rr.setSource(e.id);
+        rr.source = e.id;
       }
     });
     rTargetRelations.forEach(rr => {
       const erFound = eTargetRelations.firstOrNull(er => er.entityType == rr.entityType && er.source == rr.source);
       if (erFound) {
         project.removeEntity(rr);
-        const sourceConnections = project.diagrams.flatMap(d => d.DescendantsWithSourceConnections)
+        const sourceConnections = project.diagrams.flatMap(d => d.descendantsWithSourceConnections)
           .filter(d => d instanceof ArchiSourceConnection)
           .map(d => <ArchiSourceConnection>d)
           .filter(sc => sc.relationShipId == rr.id);
-        sourceConnections.forEach(sc => sc.setRelationShipId(erFound.id));
+        sourceConnections.forEach(sc => sc.relationShipId = erFound.id);
       } else {
-        rr.setTarget(e.id);
+        rr.target = e.id;
       }
     });
-    const diagramObjectsToRetarget = project.diagrams.flatMap(d => d.Descendants)
-      .filter(d => d.ElementId == toRemove.id);
-    diagramObjectsToRetarget.forEach(d => d.setElementId(e.id));
+    const diagramObjectsToRetarget = project.diagrams.flatMap(d => d.descendants)
+      .filter(d => d.elementId == toRemove.id);
+    diagramObjectsToRetarget.forEach(d => d.elementId = e.id);
     project.removeEntity(toRemove);
   }
 

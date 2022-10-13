@@ -1,5 +1,5 @@
 import { Component, VNode, h, ComponentChild } from 'preact';
-import { ArchimateProject } from './greeter';
+import { ArchiEntity, ArchiFolder, ArchimateProject } from './greeter';
 
 export type ArchiEntityTreeProps = {
     project: ArchimateProject;
@@ -19,32 +19,34 @@ export class ArchiEntityTree extends Component<ArchiEntityTreeProps> {
   }
 
   render(): ComponentChild {
-    const views = this.props.project?.element?.querySelector('folder[name="Views"]');
-    return this.renderChildren(Array.from(views?.children ?? []));
+    const folder = this.props.project?.folders.find(f => f.type == 'diagrams');
+    return this.renderChildren(folder);
   }
 
-  renderChildren(children: Element[]) {
-    children.sort(ArchiEntityTree.compareElements)
-    return children.map(el => el.nodeName == 'folder' ? this.renderFolder(el) : this.renderDiagramElement(el));
+  renderChildren(folder: ArchiFolder) {
+    if (folder == null || folder.diagrams.length + folder.folders.length == 0)
+      return null;
+
+    const folders = [...folder.folders];
+    folders.sort((a, b) => a.name.localeCompare(b.name));
+    const diagrams = [...folder.diagrams];
+    diagrams.sort((a, b) => a.name.localeCompare(b.name));
+
+    const a = folders.map(f => this.renderFolder(f));
+    const b = diagrams.map(d => this.renderDiagramElement(d));
+    return a.concat(b);
   }
   
-  private static compareElements(a: Element, b: Element): number {
-    const typeOrder = b.localName.localeCompare(a.localName);
-    if (typeOrder != 0)
-      return typeOrder;
-    return a.getAttribute('name').localeCompare(b.getAttribute('name'));
-  }
-
-  renderFolder(folder: Element): VNode {
-    return <li><span onClick={this.toggleFolder} class="caret caret-down">{folder.getAttribute('name')}</span>
-      <ul class="nested active">{this.renderChildren(Array.from(folder.children))}</ul>
+  renderFolder(folder: ArchiFolder): VNode {
+    return <li><span onClick={this.toggleFolder} class="caret caret-down">{folder.name}</span>
+      <ul class="nested active">{this.renderChildren(folder)}</ul>
     </li>;
   }
  
-  renderDiagramElement(element: Element): VNode {
-    const diagramId: string = element.getAttribute('id');
+  renderDiagramElement(element: ArchiEntity): VNode {
+    const diagramId: string = element.id;
     const classActive = (diagramId == this.props.active) ? 'active' : '';
-    return <li data-id={diagramId} class={classActive} onClick={(e) => this.onDiagramClick(e)}>{element.getAttribute('name')}</li>;
+    return <li data-id={diagramId} class={classActive} onClick={(e) => this.onDiagramClick(e)}>{element.name}</li>;
   }
 
   private onDiagramClick(evt: MouseEvent): void {

@@ -1,4 +1,4 @@
-import { ArchimateProject, ArchiDiagram, ArchiDiagramChild, ElementPos, ArchiDiagramObject, ArchiEntity, ArchiSourceConnection } from './greeter';
+import { ArchimateProject, ArchiDiagram, ArchiDiagramChild, ElementPos, ArchiDiagramObject, ArchiEntity, ArchiSourceConnection, ImagePosition, TextPosition, TextAlignment, SourceConnectionType } from './greeter';
 import { DiagramTemplate, EditInfoElement, ElementSelectionElement } from './diagram-template';
 import { DiagramImageCache } from './diagram-image-cache';
 
@@ -36,7 +36,7 @@ export class DiagramRenderer {
     diagramGroup.id = this.diagram.id;
     this.svgContent.appendChild(diagramGroup);
 
-    this.addElements(this.diagram.Children, diagramGroup);
+    this.addElements(this.diagram.children, diagramGroup);
     this.addRelations();
 
     this.setViewBoxSize();
@@ -47,10 +47,10 @@ export class DiagramRenderer {
   private createSvgGElement() { return this.svgContent.ownerDocument.createElementNS(this.svgContent.namespaceURI, 'g') as SVGGElement; }
 
   private setViewBoxSize() {
-    const pos = this.diagram.Descendants[0].AbsolutePosition;
+    const pos = this.diagram.descendants[0].AbsolutePosition;
     let [minX, minY] = [pos.x, pos.y];
     let [maxX, maxY] = [0.0, 0.0];
-    this.diagram.Descendants.forEach(e => {
+    this.diagram.descendants.forEach(e => {
       minX = Math.min(minX, e.AbsolutePosition.x);
       minY = Math.min(minY, e.AbsolutePosition.y);
       maxX = Math.max(maxX, e.AbsolutePosition.x + e.bounds.width);
@@ -61,20 +61,19 @@ export class DiagramRenderer {
     this.svgDocument.firstElementChild.setAttribute('height', `${(maxY - minY + 20).toFixed(0)}`);
   }
 
-  private addElements(children: ArchiDiagramChild[], parent: SVGElement) {
+  private addElements(children: ReadonlyArray<ArchiDiagramChild>, parent: SVGElement) {
     children.forEach(child => this.addElement(child, parent));
   }
 
   public addElement(child: ArchiDiagramChild, parent: Element):SVGElement {
-    let archiElement = this.project.getById(child.ElementId);
+    let archiElement = this.project.getById(child.elementId);
     if (archiElement == null) {
       archiElement = new ArchiEntity();
-      archiElement.entityType = child.EntityType;
-      archiElement.name = child.element.getAttribute('name');
+      archiElement.entityType = child.entityType;
+      archiElement.name = child.name;
     }
     const e = this.template.getElementByType(archiElement, child);
     const div = e.querySelector(':scope>foreignObject>div>div');
-    const entiyTypeCleaned = child.EntityType.split(':').pop();
 
     if (e.classList.contains('note')) {
       let textContent = child.content ?? "";
@@ -83,21 +82,21 @@ export class DiagramRenderer {
         .replace(/\r/g, '');
       archiElement.name = textContent;
     }
-    archiElement.documentation = child.element.getAttribute('documentation');
+    archiElement.documentation = child.documentation;
 
     const imageUse = e.querySelector(':scope>use.img');
     if (imageUse) {
-      const imagePath = child.element.getAttribute('imagePath');
+      const imagePath = child.imagePath;
       imageUse.setAttribute('href', '');
       if (imagePath) {
         this.imageCache.getImage(imagePath).then(imageInfo => {
   
           imageUse.setAttribute('href', '#' + imageInfo.defsId);
 
-          const imagePosition = parseInt(child.element.getAttribute('imagePosition') ??
-            (entiyTypeCleaned === 'CanvasModelImage' ? '9' : '2'));
+          const imagePosition = (child.imagePosition != null) ? child.imagePosition :
+            (child.entityType.endsWith('CanvasModelImage') ? ImagePosition.Fill : ImagePosition.TopRight);
           
-          if (imagePosition === 9) // FILL
+          if (imagePosition === ImagePosition.Fill)
             imageUse.setAttribute('transform', `matrix(${child.bounds.width/imageInfo.width},0,0,${child.bounds.height/imageInfo.height},0,0)`);
           else
           {
@@ -118,30 +117,29 @@ export class DiagramRenderer {
             }
             imageUse.setAttribute('transform', `matrix(1,0,0,1,${imageX},${imageY})`);
           }
-          const alpha = child.element.getAttribute('alpha');
-          if (alpha) {
-            imageUse.setAttribute('opacity', `${Number(alpha) / 255}`);
-          }
         });
       }
     }
-    
-    const textPosition = child.element.getAttribute('textPosition');
-    switch (textPosition) {
-      case '0': div.classList.add('top'); break;
-      case '1': div.classList.add('middle'); break;
-      case '2': div.classList.add('bottom'); break;
+    if (child.alpha != null)
+      e.firstElementChild.setAttribute('fill-opacity', `${child.alpha / 255}`);
+
+    if (child.textPosition != null) {
+      switch (child.textPosition) {
+        case TextPosition.Top: div.classList.add('top'); break;
+        case TextPosition.Middle: div.classList.add('middle'); break;
+        case TextPosition.Bottom: div.classList.add('bottom'); break;
+      }
     }
-    const textAlignment = child.element.getAttribute('textAlignment');
-    switch (textAlignment) {
-      case '1': div.classList.add('left'); break;
-      case '2': div.classList.add('center'); break;
-      case '4': div.classList.add('right'); break;
+    if (child.textAlignment != null) {
+      switch (child.textAlignment) {
+        case TextAlignment.Left: div.classList.add('left'); break;
+        case TextAlignment.Centre: div.classList.add('center'); break;
+        case TextAlignment.Right: div.classList.add('right'); break;
+      }
     }
     const rect = e.querySelector(':scope>rect');
-    const borderColor = child.element.getAttribute('borderColor');
-    if (borderColor) {
-      rect.setAttribute('stroke', borderColor);
+    if (child.borderColor) {
+      rect.setAttribute('stroke', child.borderColor);
     }
 
     e.setAttribute('id', child.id.toString());
@@ -208,7 +206,7 @@ export class DiagramRenderer {
       selection.lastSelected = true;
     }
     parent.append(e);
-    this.addElements(child.Children, e);
+    this.addElements(child.children, e);
     
     return e;
 
@@ -230,7 +228,7 @@ export class DiagramRenderer {
   
   public addRelations() {
     let connectionsNext: ArchiSourceConnection[] =
-      this.diagram.Descendants.flatMap(child => child.SourceConnections);
+      this.diagram.descendants.flatMap(child => child.sourceConnections);
     let connections: ArchiSourceConnection[] = [];
     this.sourceConnectionMiddlePoints.clear();
 
@@ -239,7 +237,7 @@ export class DiagramRenderer {
       connectionsNext = [];
 
       for (const sourceConnection of connections) {
-        const [end, endBounds] = this.getAbsolutePositionAndBounds(this.diagram.GetDiagramObjectById(sourceConnection.targetId));
+        const [end, endBounds] = this.getAbsolutePositionAndBounds(this.diagram.getDiagramObjectById(sourceConnection.targetId));
         if (end != null) {
           const [start, startBounds] = this.getAbsolutePositionAndBounds(sourceConnection.source);
           const coords = DiagramRenderer.calculateConnectionCoords(start, startBounds, end, endBounds, sourceConnection);
@@ -366,25 +364,25 @@ export class DiagramRenderer {
     path.setAttribute('class', cssClass);
 
     if (!relationShipType) {
-      const type = Number(sourceConnection.element.getAttribute('type'));
+      const type = Number(sourceConnection.type);
       let markerStart = null;
       let markerEnd = null;
       let dashArray = null;
-      if (type & 1)
+      if (type & SourceConnectionType.ArrowFillTarget)
         markerEnd = 'Closed';
-      if (type & 16)
+      if (type & SourceConnectionType.ArrowHollowTarget)
         markerEnd = 'Hollow'
-      if (type & 64)
+      if (type & SourceConnectionType.ArrowLineTarget)
         markerEnd = 'Open';
-      if (type & 8)
+      if (type & SourceConnectionType.ArrowFillSource)
         markerStart = 'Closed';
-      if (type & 32)
+      if (type & SourceConnectionType.ArrowHollowSource)
         markerStart = 'Hollow'
-      if (type & 128)
+      if (type & SourceConnectionType.ArrowLineSource)
         markerStart = 'Open';
-      if (type & 2)
+      if (type & SourceConnectionType.LineDashed)
         dashArray = '6 4';
-      if (type & 4)
+      if (type & SourceConnectionType.LineDotted)
         dashArray = '2 4';
       if (markerStart)
         path.setAttribute('marker-start', `url(#arrow${markerStart}Start)`);
@@ -396,8 +394,8 @@ export class DiagramRenderer {
 
     // https://stackoverflow.com/questions/47088409/svg-attributes-beaten-by-cssstyle-in-priority
     let style = '';
-    if (sourceConnection.tineWidth != null)
-      style += 'stroke-width:' + sourceConnection.tineWidth + ';';
+    if (sourceConnection.lineWidth != null)
+      style += 'stroke-width:' + sourceConnection.lineWidth + ';';
     if (sourceConnection.lineColor != null)
       style += 'stroke:' + sourceConnection.lineColor + ';';
     if (style !== '')
@@ -534,7 +532,7 @@ export class DiagramRenderer {
     this._highlightedElementId = value;
     
     if (value) {
-      const connectionsToRerender = this.diagram.DescendantsWithSourceConnections.filter(o => o instanceof ArchiSourceConnection && (o.source.id == value || o.targetId == value)) as ArchiSourceConnection[];
+      const connectionsToRerender = this.diagram.descendantsWithSourceConnections.filter(o => o instanceof ArchiSourceConnection && (o.source.id == value || o.targetId == value)) as ArchiSourceConnection[];
       connectionsToRerender.forEach(c => {
       const lineG = this.svg.getElementById(c.id);
       if (lineG)

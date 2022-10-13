@@ -44,13 +44,14 @@ export class ElementPalette extends Component<ElementPaletteProps, ElementPalett
   }
   onMouseEnter(e: h.JSX.TargetedMouseEvent<HTMLSpanElement>): void {
     const d = (e.target as Element).closest('.' + styles.palette);
+    const docBBox = document.body.getBoundingClientRect()
     const dRect = d.getBoundingClientRect();
     const span = (e.target as Element).closest('span');
     const svg = span.querySelector('svg');
     const elementName = svg.getAttribute('data-element-name');
     this.setState({
-      previewX: dRect.x + dRect.width,
-      previewY: dRect.y,
+      previewX: dRect.x + dRect.width - docBBox.x,
+      previewY: dRect.y - docBBox.y,
       elementType: elementName,
     });
   }
