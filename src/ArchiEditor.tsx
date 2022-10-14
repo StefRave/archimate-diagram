@@ -163,12 +163,16 @@ export class ArchiEditor extends Component<ArchiEditorProps, ArchiEditorState> {
           <ul id="diagramTree">
             <ArchiEntityTree project={this.state.project} active={this.state.diagram?.id} onDiagramSelected={(viewId) => this.changeView(viewId)} />
           </ul>
-          <ElementPalette />
+          <ElementPalette onDragging={(elementType) => this.onDraggong(elementType)} />
         </div>
         <div class="vertical-gutter"></div>
         <div id="svgTarget" class="split split-horizontal">
         </div>
       </div>
     </div>;
+  }
+  onDraggong(elementType: string): void {
+    if (this.diagramEditor)
+      console.log('start new element ' + elementType);
   }
 }

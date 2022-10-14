@@ -1,10 +1,11 @@
-import { Component, VNode, h, ComponentChild, hydrate } from 'preact';
+import { Component, VNode, h, ComponentChild } from 'preact';
 import { ArchimateElementInfo, DiagramTemplate, IArchimateElementInfo } from './diagram-template';
 import { ElementBounds } from './greeter';
 import styles from './component.module.css'
 
 // eslint-disable-next-line @typescript-eslint/ban-types
 export type ElementPaletteProps = {
+  onDragging?: (elementType: string) => void; 
 }
 export type ElementPaletteState = {
   previewX: number;
@@ -37,30 +38,39 @@ export class ElementPalette extends Component<ElementPaletteProps, ElementPalett
         <span onMouseEnter={(e) => this.onMouseEnter(e)}>{this.renderIcon(element)}
         </span>)}
         <div>
-            <ElementPreview elementInfo={this.state.elementType} x={this.state.previewX} y={this.state.previewY} />
+            <ElementPreview onDragging={() => this.onDragging()} 
+              elementType={this.state.elementType} x={this.state.previewX} y={this.state.previewY} />
         </div>
 
     </div>;
   }
+  onDragging(): void {
+    if (this.props.onDragging)
+      this.props.onDragging(this.state.elementType);
+  }
+
   onMouseEnter(e: h.JSX.TargetedMouseEvent<HTMLSpanElement>): void {
+    if (e.buttons == 1)
+      return;
     const d = (e.target as Element).closest('.' + styles.palette);
-    const docBBox = document.body.getBoundingClientRect()
+    const docBBox = document.body.getBoundingClientRect();
     const dRect = d.getBoundingClientRect();
     const span = (e.target as Element).closest('span');
     const svg = span.querySelector('svg');
     const elementName = svg.getAttribute('data-element-name');
     this.setState({
       previewX: dRect.x + dRect.width - docBBox.x,
-      previewY: dRect.y - docBBox.y,
+      previewY: e.clientY - docBBox.y,
       elementType: elementName,
     });
   }
 }
 
 export type ElementPreviewProps = {
-  elementInfo: string;
+  elementType: string;
   x: number;
   y: number;
+  onDragging?: (elementType: string) => void; 
 };
 
 
@@ -71,17 +81,17 @@ export class ElementPreview extends Component<ElementPreviewProps> {
   }
 
   render(): ComponentChild {
-    if (!this.props.elementInfo)
+    if (!this.props.elementType)
       return <div></div>;
     const e = this.template.getElementByType(
-        {entityType: this.props.elementInfo.replaceAll(' ', ''), subType: ''},
+        {entityType: this.props.elementType.replaceAll(' ', ''), subType: ''},
         {bounds: new ElementBounds(1,1,120,50), figureType: 0});
     const div = e.querySelector(':scope>foreignObject>div>div');
-    div.textContent = this.props.elementInfo;
+    div.textContent = this.props.elementType;
     
-    return <div class={'content ' + styles.palettePreview} style={`position: absolute;  
-      top: ${this.props.y}px; left: ${this.props.x}px;
-      width: 122px; height: 52px; background-color: white;`}>
+    return <div onMouseMove={(evt) => this.onMouseMove(evt)} class={'content ' + styles.palettePreview} style={`position: absolute;  
+      top: ${this.props.y - 26}px; left: ${this.props.x}px;
+      width: 122px; height: 52px; background-color: #ff00;`}>
       <svg width="122" height="52" ref={(dom) => setElement(dom)}>
       </svg>
     </div>;
@@ -90,5 +100,16 @@ export class ElementPreview extends Component<ElementPreviewProps> {
       dom?.replaceChildren();
       dom?.appendChild(e);
     }
+  }
+  onMouseMove(evt: h.JSX.TargetedMouseEvent<HTMLDivElement>): void {
+    if (evt.buttons != 1)
+      return;
+    const div = evt.currentTarget;
+    const docBBox = document.body.getBoundingClientRect();
+    div.style.top = `${evt.clientY - docBBox.y -26}px`;
+    
+    if (evt.clientX - docBBox.x > this.props.x)
+      if (this.props.onDragging)
+        this.props.onDragging(this.props.elementType);
   }
 }

@@ -775,9 +775,7 @@
 
 
     <g id="Representation" transform="translate(372, 240)" class="business structure element">
-      <path d="M 0 0 l 168 0 l 0 60
-            c -84 -16 -84 16 -168 0 Z" />
-      <path d="M 0 8 l 168 0" fill="none" />
+      <path d="M 0 0 l 168 0 l 0 56 c -84 -16 -84 16 -168 0 Z m 0 8 l 168 0" />
       <foreignObject width="168px" height="60px">
         <div xmlns="http://www.w3.org/1999/xhtml" style="width: 168px; height: 60px">
           <div>Representation</div>
@@ -826,9 +824,8 @@
     </g>
 
     <g id="Node" transform="translate(372, 670)" class="technology structure element">
-      <path fill="rgb(180,207,164)" d="M 0 8 l 8 -8 l 160 0 l 0 52 l -8 8 l -160 0z" />
+      <path fill="rgb(180,207,164)" d="M 0 8 l 8 -8 l 160 0 l 0 52 l -8 8 l -160 0zM168 0 l -8 8" />
       <rect x="0" y="8" width="160" height="52" />
-      <path fill="none" d="M168 0 l -8 8" fill-rule="evenodd" />
       <foreignObject width="168px" height="60px">
         <div xmlns="http://www.w3.org/1999/xhtml" style="width: 168px; height: 60px">
           <div>Node</div>
@@ -836,9 +833,8 @@
       </foreignObject>
     </g>
     <g id="Equipment" transform="translate(192, 670)" class="technology structure element">
-      <path fill="rgb(180,207,164)" d="M 0 8 l 8 -8 l 160 0 l 0 52 l -8 8 l -160 0z" />
+      <path fill="rgb(180,207,164)" d="M 0 8 l 8 -8 l 160 0 l 0 52 l -8 8 l -160 0zM168 0 l -8 8" />
       <rect x="0" y="8" width="160" height="52" />
-      <path fill="none" d="M168 0 l -8 8" fill-rule="evenodd" />
       <use href="#EquipmentIcon" x="160" y="8" />
       <foreignObject width="168px" height="60px">
         <div xmlns="http://www.w3.org/1999/xhtml" style="width: 168px; height: 60px">
@@ -847,9 +843,8 @@
       </foreignObject>
     </g>
     <g id="Facility" transform="translate(12, 670)" class="technology structure element">
-      <path fill="rgb(180,207,164)" d="M 0 8 l 8 -8 l 160 0 l 0 52 l -8 8 l -160 0z" />
+      <path fill="rgb(180,207,164)" d="M 0 8 l 8 -8 l 160 0 l 0 52 l -8 8 l -160 0zM168 0 l -8 8" />
       <rect x="0" y="8" width="160" height="52" />
-      <path fill="none" d="M168 0 l -8 8" fill-rule="evenodd" />
       <use href="#FacilityIcon" x="160" y="8" />
       <foreignObject width="168px" height="60px">
         <div xmlns="http://www.w3.org/1999/xhtml" style="width: 168px; height: 60px">
@@ -1076,9 +1071,8 @@
     </g>
 
     <g id="Plateau" transform="translate(552, 808)" class="plateau structure element">
-      <path d="M 0 8 l 8 -8 l 160 0 l 0 52 l -8 8 l -160 0z" />
+      <path d="M 0 8 l 8 -8 l 160 0 l 0 52 l -8 8 l -160 0zM168 0 l -8 8" />
       <rect x="0" y="8" width="160" height="52" />
-      <path fill="none" d="M168 0 l -8 8" fill-rule="evenodd" />
       <use href="#PlateauIcon" x="160" y="8" />
       <foreignObject width="168px" height="60px">
         <div xmlns="http://www.w3.org/1999/xhtml" style="width: 168px; height: 60px">
