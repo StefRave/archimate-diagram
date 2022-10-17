@@ -66,7 +66,7 @@ export class DiagramRenderer {
   }
 
   public addElement(child: ArchiDiagramChild, parent: Element):SVGElement {
-    let archiElement = this.project.getById(child.elementId);
+    let archiElement = this.project.getById(child.entityId);
     if (archiElement == null) {
       archiElement = new ArchiEntity();
       archiElement.entityType = child.entityType;

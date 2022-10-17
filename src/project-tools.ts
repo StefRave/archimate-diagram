@@ -57,8 +57,8 @@ export class ProjectTools {
       }
     });
     const diagramObjectsToRetarget = project.diagrams.flatMap(d => d.descendants)
-      .filter(d => d.elementId == toRemove.id);
-    diagramObjectsToRetarget.forEach(d => d.elementId = e.id);
+      .filter(d => d.entityId == toRemove.id);
+    diagramObjectsToRetarget.forEach(d => d.entityId = e.id);
     project.removeEntity(toRemove);
   }
 

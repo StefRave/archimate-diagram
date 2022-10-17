@@ -8,11 +8,8 @@ export type ArchiEntityTreeProps = {
   }
 
 export class ArchiEntityTree extends Component<ArchiEntityTreeProps> {
-  constructor(props: ArchiEntityTreeProps) {
-    super(props);
-  }
 
-  toggleFolder(evt: MouseEvent): void {
+  toggleFolder(evt: h.JSX.TargetedMouseEvent<HTMLSpanElement>): void {
     const target = evt.target as HTMLElement;
     target.parentElement.querySelector(".nested").classList.toggle("active");
     target.classList.toggle('caret-down');
@@ -38,7 +35,7 @@ export class ArchiEntityTree extends Component<ArchiEntityTreeProps> {
   }
   
   renderFolder(folder: ArchiFolder): VNode {
-    return <li><span onClick={this.toggleFolder} class="caret caret-down">{folder.name}</span>
+    return <li><span onClick={(e) => this.toggleFolder(e)} class="caret caret-down">{folder.name}</span>
       <ul class="nested active">{this.renderChildren(folder)}</ul>
     </li>;
   }
@@ -49,7 +46,7 @@ export class ArchiEntityTree extends Component<ArchiEntityTreeProps> {
     return <li data-id={diagramId} class={classActive} onClick={(e) => this.onDiagramClick(e)}>{element.name}</li>;
   }
 
-  private onDiagramClick(evt: MouseEvent): void {
+  private onDiagramClick(evt: h.JSX.TargetedMouseEvent<HTMLLIElement>): void {
     const target = evt.target as HTMLElement;
     const diagramId = target.getAttribute('data-id');
     if (!diagramId)

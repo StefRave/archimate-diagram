@@ -11,6 +11,8 @@ export class DiagramEditor {
   private activeDragging: boolean;
   private changeManager: ChangeManager;
   private keyDownFunction = (evt: KeyboardEvent) => this.onKeyDown(evt);
+  private pointerMoveFunction = (evt: PointerEvent) => this.onPointerMove(evt);
+  private pointerUpFunction = (evt: PointerEvent) => this.onPointerUp(evt);
 
   private get selectedElement(): SVGGElement { return this.contentElement.ownerSVGElement.getElementById(this.selectedElementId) as SVGGElement; }
 
@@ -22,16 +24,18 @@ export class DiagramEditor {
   public makeDraggable() {
     this.svg.addEventListener('touchstart', (evt) => this.onTouchStart(evt));
     this.svg.addEventListener('pointerdown', (evt) => this.onPointerDown(evt));
-    this.svg.addEventListener('pointermove', (evt) => this.onPointerMove(evt));
-    this.svg.addEventListener('pointerup', (evt) => this.onPointerUp(evt));
     this.svg.addEventListener('focusout', (evt) => this.onFocusOut(evt));
     this.svg.addEventListener('input', (evt) => this.onInput(evt));
 
     this.svg.ownerDocument.addEventListener('keydown', this.keyDownFunction);
+    this.svg.ownerDocument.addEventListener('pointermove', this.pointerMoveFunction);
+    this.svg.ownerDocument.addEventListener('pointerup', this.pointerUpFunction);
   }
 
   dispose() {
     this.svg.ownerDocument.removeEventListener('keydown', this.keyDownFunction);
+    this.svg.ownerDocument.removeEventListener('pointermove', this.pointerMoveFunction);
+    this.svg.ownerDocument.removeEventListener('pointerup', this.pointerUpFunction);
   }
 
   private onKeyDown(evt: KeyboardEvent) {
@@ -243,6 +247,10 @@ export class DiagramEditor {
     return element;
   }
   
+  finalizeAction(change: IDiagramChange) {
+    this.changeManager.finalizeChange(change);
+  }
+
   private editMoveStart() {
     const diagramElement = this.diagram.getDiagramObjectById(this.selectedElement.id) as ArchiDiagramChild;
     this.startDragMouseOffset = { x: this.startDragMousePosition.x - diagramElement.AbsolutePosition.x, y: this.startDragMousePosition.y - diagramElement.AbsolutePosition.y };
@@ -422,6 +430,8 @@ class EditActionBuilder {
         return new EditConnectionAction();
       case ChangeAction.Edit:
         return new EditEditAction();
+      case ChangeAction.AddRemoveElement:
+        return new EditAddRemoveElement();
       default:
         throw new Error(`Unimplemented action for ${ChangeAction[action]}`);
     }
@@ -455,9 +465,12 @@ class EditMoveAction extends EditAction {
       }
     }
 
-    const element = renderer.diagram.getDiagramObjectById(change.elementId) as ArchiDiagramChild
-    const parentElement = change.parentIdNew == renderer.diagram.id ? null : renderer.diagram.getDiagramObjectById(change.parentIdNew) as ArchiDiagramChild
-    element.parent = parentElement;
+    const element = renderer.diagram.getDiagramObjectById(change.elementId) as ArchiDiagramChild;
+    const parentElement = change.parentIdNew == renderer.diagram.id ? null : renderer.diagram.getDiagramObjectById(change.parentIdNew) as ArchiDiagramChild;
+    if (element.parent != parentElement) {
+      const diagram = project.diagrams.find(d => d.id == diagramChange.diagramId);
+      diagram.setElement(element, parentElement);
+    }
     element.bounds = new ElementBounds(change.positionNew.x, change.positionNew.y, change.positionNew.width, change.positionNew.height);
   }
 
@@ -531,8 +544,8 @@ class EditEditAction extends EditAction {
   public doDiagramChange(diagramChange: IDiagramChange, renderer: DiagramRenderer, project: ArchimateProject, changeState: ChangeState): void {
     const change = diagramChange.edit;
     const element = renderer.diagram.getDiagramObjectById(change.elementId) as ArchiDiagramChild
-    if (element.elementId) {
-      const archiElement = project.getById(element.elementId)
+    if (element.entityId) {
+      const archiElement = project.getById(element.entityId)
       archiElement.name = change.textNew;
     } else {
       element.content = change.textNew;
@@ -547,6 +560,46 @@ class EditEditAction extends EditAction {
       const diagramElement = renderer.diagram.getDiagramObjectById(edit.elementId) as ArchiDiagramChild
       element.remove();
       renderer.addElement(diagramElement, parent);
+    }
+  }
+}
+
+class EditAddRemoveElement extends EditAction {
+  public doDiagramChange(diagramChange: IDiagramChange, renderer: DiagramRenderer, project: ArchimateProject, changeState: ChangeState): void {
+    if (changeState != ChangeState.Final)
+      return;
+    const change = diagramChange.addRemoveElement;
+    if (change.adding) {
+      if (change.entity) {
+        let entity = project.getById(change.entity.id);
+        if (!entity) {
+          entity = {...change.entity}; // shallow clone. Is this a good idea?
+          project.addEntity(entity);
+        }
+      }
+      renderer.diagram.setElement(change.element, null);
+    }
+    else {
+      if (change.entity) {
+        project.removeEntity(change.entity);
+      }
+      renderer.diagram.removeElement(change.element);
+    }
+  }
+
+  public doSvgChange(diagramChange: IDiagramChange, renderer: DiagramRenderer, changeState: ChangeState): void {
+    if (changeState != ChangeState.Final)
+      return;
+    
+    const change = diagramChange.addRemoveElement;
+
+    const element = renderer.svg.getElementById(change.element.id) as SVGElement;
+    if (element)
+      element.remove();
+    if (change.adding) {
+      const diagramElement = renderer.diagram.getDiagramObjectById(change.element.id) as ArchiDiagramChild
+      const parentSvgElement = renderer.svg.getElementById(diagramElement.parent != null ? diagramElement.parent.id : renderer.diagram.id);
+      renderer.addElement(diagramElement, parentSvgElement);
     }
   }
 }

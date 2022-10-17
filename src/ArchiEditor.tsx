@@ -1,12 +1,14 @@
 import { Component, VNode, h, ComponentChild, render } from 'preact';
 import Split from 'split-grid';
 import { ArchiEntityTree } from './ArchiEntityTree';
+import { ChangeAction, IDiagramChange } from './diagram-change';
 import { DiagramEditor } from './diagram-editor';
 import { DiagramRenderer } from './diagram-renderer';
 import { DiagramTemplate } from './diagram-template';
 import { ElementPalette } from './ElementPalette';
-import { ArchiDiagram, ArchimateProject, ArchimateProjectStorage } from './greeter';
+import { ArchiDiagram, ArchiDiagramChild, ArchiEntity, ArchimateProject, ArchimateProjectStorage, ElementBounds } from './greeter';
 import { Base64 } from './util/base64';
+import { v4 as uuidv4 } from 'uuid';
 
 // eslint-disable-next-line @typescript-eslint/ban-types
 export type ArchiEditorProps = {
@@ -163,7 +165,7 @@ export class ArchiEditor extends Component<ArchiEditorProps, ArchiEditorState> {
           <ul id="diagramTree">
             <ArchiEntityTree project={this.state.project} active={this.state.diagram?.id} onDiagramSelected={(viewId) => this.changeView(viewId)} />
           </ul>
-          <ElementPalette onDragging={(elementType) => this.onDraggong(elementType)} />
+          <ElementPalette onDragging={(elementType) => this.onDragging(elementType)} />
         </div>
         <div class="vertical-gutter"></div>
         <div id="svgTarget" class="split split-horizontal">
@@ -171,8 +173,32 @@ export class ArchiEditor extends Component<ArchiEditorProps, ArchiEditorState> {
       </div>
     </div>;
   }
-  onDraggong(elementType: string): void {
-    if (this.diagramEditor)
-      console.log('start new element ' + elementType);
+  onDragging(elementType: string): void {
+    if (!this.diagramEditor)
+      return;
+
+    const entity = new ArchiEntity();
+    entity.id = 'id-' + uuidv4();
+    entity.name = elementType;
+    entity.entityType = 'archimate:' + elementType.replaceAll(' ', '');
+    
+    const element = new ArchiDiagramChild();
+    element.id = 'id-' + uuidv4();
+    element.entityType = 'archimate:DiagramObject';
+    element.bounds = new ElementBounds(50, 50, 168, 60);
+    element.entityId = entity.id;
+    element.children = [];
+    element.sourceConnections = [];
+
+    this.diagramEditor.finalizeAction({
+      action: ChangeAction.AddRemoveElement,
+      diagramId: this.state.diagram.id,
+      addRemoveElement: {
+        adding: true,
+        entity: entity,
+        element: element, 
+      }
+    } as IDiagramChange);
+    console.log('start new element ' + elementType);
   }
 }

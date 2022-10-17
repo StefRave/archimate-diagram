@@ -45,6 +45,8 @@ export class ElementPalette extends Component<ElementPaletteProps, ElementPalett
     </div>;
   }
   onDragging(): void {
+    this.setState({ elementType: null }); // close preview
+
     if (this.props.onDragging)
       this.props.onDragging(this.state.elementType);
   }

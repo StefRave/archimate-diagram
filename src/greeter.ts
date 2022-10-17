@@ -154,7 +154,7 @@ export class ArchimateProjectStorage {
       o.textAlignment = parseInt(textAlignment);
     o.borderColor = e.getAttribute('borderColor');
 
-    o.elementId = e.getAttribute('archimateElement') ??
+    o.entityId = e.getAttribute('archimateElement') ??
       e.getAttribute('model') ??
       archiId(e.getElementsByClassName('archimateElement')[0]);
     o.figureType = parseInt(e.getAttribute('type') ?? '0');
@@ -245,7 +245,7 @@ export class ArchimateProject {
 
   public getUnused(): ArchiEntity[] {
     const usedIds = this.diagrams.flatMap(d => d.descendantsWithSourceConnections)
-      .map(o => (<ArchiDiagramChild>o).elementId ?? (<ArchiSourceConnection>o).relationShipId).filter(o => o)
+      .map(o => (<ArchiDiagramChild>o).entityId ?? (<ArchiSourceConnection>o).relationShipId).filter(o => o)
       .concat(this.diagrams.map(d => d.id));
     const usedIdsSet = new Set(usedIds);
     const unusedEntities = asSequence(this.entitiesById.values()).filter(e => !usedIdsSet.has(e.id));
@@ -256,6 +256,10 @@ export class ArchimateProject {
     this.entitiesById.delete(entity.id);
     if (entity instanceof Relationship)
       this.relationshipsById.delete(entity.id);
+  }
+
+  addEntity(entity: ArchiEntity) {
+    this.entitiesById.set(entity.id, entity);
   }
 }
 
@@ -315,6 +319,30 @@ export class ArchiDiagram extends ArchiEntity {
       return result;
     }));
   }
+  
+  setElement(element: ArchiDiagramChild, parent: ArchiDiagramChild) {
+    if (element.parent)
+      element.parent.children = element.parent.children.filter(e => e.id != element.id); 
+    else
+      this.children = this.children.filter(e => e.id != element.id); 
+    
+    this.childById.set(element.id, element);
+    if (parent)
+      parent.children = [...parent.children, element];
+    else
+      this.children = [...this.children, element];
+    element.parent = parent;
+  }
+
+  removeElement(element: ArchiDiagramChild) {
+    this.childById.delete(element.id);
+
+    if (element.parent)
+      element.parent.children = element.parent.children.filter(e => e.id != element.id);
+    else
+      this.children = this.children.filter(e => e.id != element.id);
+    element.parent = null;
+  }
 }
 
 export class ArchiDiagramObject {
@@ -329,7 +357,7 @@ export class ArchiDiagramChild extends ArchiDiagramObject {
   name: string;
   documentation: string;
   entityType: string;
-  elementId: string;
+  entityId: string;
   bounds: ElementBounds;
   fillColor: string;
   fontColor: string;

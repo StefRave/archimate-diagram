@@ -1,4 +1,5 @@
 import equal from 'fast-deep-equal';
+import { ArchiDiagramChild, ArchiEntity } from './greeter';
 
 export class ChangeFunctions {
 
@@ -9,6 +10,7 @@ export class ChangeFunctions {
       move: undoMove(change.move),
       connection: undoConnection(change.connection),
       edit: undoEdit(change.edit),
+      addRemoveElement: undoAddRemoveElement(change.addRemoveElement),
     }
 
     function undoMove(change: IDiagramChangeMove): IDiagramChangeMove {
@@ -43,6 +45,16 @@ export class ChangeFunctions {
         textOld: change.textNew,
       }
     }
+
+    function undoAddRemoveElement(change: IDiagramChangeAddRemoveElement): IDiagramChangeAddRemoveElement {
+      if (!change)
+        return null;
+      return <IDiagramChangeAddRemoveElement>{
+        entity: change.entity,
+        element: change.element,
+        adding: !change.adding,
+      };
+    }
   }
 
   public static isChanged(change: IDiagramChange): boolean {
@@ -52,9 +64,11 @@ export class ChangeFunctions {
       return isConnectionChanged(change.connection);
     if (change.edit)
       return isEditChanged(change.edit);
-    throw new Error("unknown change type");
+    if (change.addRemoveElement)
+      return true;
 
-      
+    throw new Error("unknown change type");
+    
     function isMoveChanged(c: IDiagramChangeMove): boolean {
       return c.parentIdNew != c.parentIdOld ||
         !equal(c.positionNew, c.positionOld);
@@ -76,6 +90,7 @@ export interface IDiagramChange {
   move: IDiagramChangeMove;
   connection: IDiagramChangeConnection;
   edit: IDiagramChangeEdit;
+  addRemoveElement: IDiagramChangeAddRemoveElement;
 }
 
 export enum ChangeAction {
@@ -83,6 +98,7 @@ export enum ChangeAction {
   Resize,
   Connection,
   Edit,
+  AddRemoveElement,
 }
 
 
@@ -119,4 +135,10 @@ export interface IDiagramChangeEdit {
   elementId: string;
   textNew: string;
   textOld: string;
+}
+
+export interface IDiagramChangeAddRemoveElement {
+  entity: ArchiEntity;
+  element: ArchiDiagramChild;
+  adding: boolean;
 }
