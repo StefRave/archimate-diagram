@@ -165,7 +165,7 @@ export class ArchiEditor extends Component<ArchiEditorProps, ArchiEditorState> {
           <ul id="diagramTree">
             <ArchiEntityTree project={this.state.project} active={this.state.diagram?.id} onDiagramSelected={(viewId) => this.changeView(viewId)} />
           </ul>
-          <ElementPalette onDragging={(elementType) => this.onDragging(elementType)} />
+          <ElementPalette onDragging={(elementType, evt) => this.onDragging(elementType, evt)} />
         </div>
         <div class="vertical-gutter"></div>
         <div id="svgTarget" class="split split-horizontal">
@@ -173,9 +173,11 @@ export class ArchiEditor extends Component<ArchiEditorProps, ArchiEditorState> {
       </div>
     </div>;
   }
-  onDragging(elementType: string): void {
+  onDragging(elementType: string, evt: {clientX: number, clientY: number}): void {
     if (!this.diagramEditor)
       return;
+
+    const mousePos = this.diagramEditor.getMousePosition(evt);
 
     const entity = new ArchiEntity();
     entity.id = 'id-' + uuidv4();
@@ -185,7 +187,7 @@ export class ArchiEditor extends Component<ArchiEditorProps, ArchiEditorState> {
     const element = new ArchiDiagramChild();
     element.id = 'id-' + uuidv4();
     element.entityType = 'archimate:DiagramObject';
-    element.bounds = new ElementBounds(50, 50, 168, 60);
+    element.bounds = new ElementBounds(mousePos.x - 168 / 2, mousePos.y - 60 / 2, 168, 60);
     element.entityId = entity.id;
     element.children = [];
     element.sourceConnections = [];
@@ -199,6 +201,7 @@ export class ArchiEditor extends Component<ArchiEditorProps, ArchiEditorState> {
         element: element, 
       }
     } as IDiagramChange);
+    this.diagramEditor.startDragging(element.id, mousePos);
     console.log('start new element ' + elementType);
   }
 }

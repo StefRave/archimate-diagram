@@ -154,7 +154,7 @@ export class DiagramRenderer {
         div.parentNode.appendChild(d);
       } else {
         div.textContent = '';
-        archiElement.name.split('\n').forEach(t => {
+        (archiElement.name ?? '').split('\n').forEach(t => {
           const d = e.ownerDocument.createElementNS(div.namespaceURI, 'div');
           if (t != '')
             d.textContent = t;

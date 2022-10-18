@@ -77,11 +77,12 @@ export class ArchimateProjectStorage {
   }
 
   private static deserializeDiagram(type: string, e: Element): ArchiDiagram {
-    const o = new ArchiDiagram();
-    o.children = Array.from(e.children)
+    const children = Array.from(e.children)
       .filter(n => n.nodeName == 'children' || n.nodeName == 'child')
       .map(c => this.deserializeDiagramChild(c, null));
-    this.deserializeEntity(type, e, o);
+
+      const o = new ArchiDiagram(children);
+      this.deserializeEntity(type, e, o);
     return o;
   }
 
@@ -290,14 +291,13 @@ export class ArchiDiagram extends ArchiEntity {
   public children: ReadonlyArray<ArchiDiagramChild>;
   private childById: Map<string, ArchiDiagramObject>;
 
-  resetCache() {
-    this.childById = null;
+  constructor(children: ReadonlyArray<ArchiDiagramChild>) {
+    super();
+    this.children = children;
+    this.childById = new Map<string, ArchiDiagramObject>(this.descendantsWithSourceConnections.map(d => [d.id, d]));
   }
 
   public getDiagramObjectById(id: string): ArchiDiagramObject {
-    if (this.childById == null) {
-      this.childById = new Map<string, ArchiDiagramObject>(this.descendantsWithSourceConnections.map(d => [d.id, d]));
-    }
     return this.childById.get(id);
   }
 

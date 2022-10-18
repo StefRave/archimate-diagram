@@ -29,9 +29,9 @@ export class ArchiEntityTree extends Component<ArchiEntityTreeProps> {
     const diagrams = [...folder.diagrams];
     diagrams.sort((a, b) => a.name.localeCompare(b.name));
 
-    const a = folders.map(f => this.renderFolder(f));
-    const b = diagrams.map(d => this.renderDiagramElement(d));
-    return a.concat(b);
+    const folderHtml = folders.map(f => this.renderFolder(f));
+    const diagramHtml = diagrams.map(d => this.renderDiagramElement(d));
+    return folderHtml.concat(diagramHtml);
   }
   
   renderFolder(folder: ArchiFolder): VNode {

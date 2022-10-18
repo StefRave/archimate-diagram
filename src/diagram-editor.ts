@@ -49,8 +49,8 @@ export class DiagramEditor {
       this.renderer.removeElementSelections();
     }
     else if (evt.key == 'F2') {
-      const elmentToEdit = this.contentElement.querySelector(':scope g.lastSelection');
-      this.editElementText(elmentToEdit);
+      if (this.selectedElementId)
+        this.editElementText(this.selectedElement);
     }
     else if (evt.key == 'z' && evt.ctrlKey) {
       this.changeManager.undo();
@@ -123,7 +123,6 @@ export class DiagramEditor {
     evt.stopImmediatePropagation();
 
     this.startDragMousePosition = this.getMousePosition(evt);
-    this.startDragMouseOffset = {x: 0, y: 0}
 
     if (target.tagName === 'circle' && target.parentElement.classList.contains('selection'))
       this.editResizeStart(target);
@@ -249,6 +248,16 @@ export class DiagramEditor {
   
   finalizeAction(change: IDiagramChange) {
     this.changeManager.finalizeChange(change);
+  }
+
+  public startDragging(elementId: string, mousePosition: {x: number, y: number}) {
+    this.startDragMousePosition = mousePosition;
+    this.activeDragging = false;
+    this.selectedElementId = elementId;
+    this.renderer.highlightedElementId = elementId;
+    this.renderer.removeElementSelections();
+    this.renderer.addElementSelection(this.selectedElementId);
+    this.editMoveStart();
   }
 
   private editMoveStart() {
@@ -397,7 +406,7 @@ export class DiagramEditor {
     this.changeManager.updateChange();
   }
 
-  private getMousePosition(evt: PointerEvent) {
+  public getMousePosition(evt: {clientX: number, clientY: number}) {
     const CTM = this.svg.getScreenCTM();
     return {
       x: (evt.clientX - CTM.e) / CTM.a,
