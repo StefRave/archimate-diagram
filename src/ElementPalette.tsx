@@ -15,6 +15,7 @@ export type ElementPaletteState = {
 export class ElementPalette extends Component<ElementPaletteProps, ElementPaletteState> {
   private pointerMoveFunction = (evt: PointerEvent) => this.onPointerMove(evt);
   ref: RefObject<HTMLDivElement>;
+  active: boolean;
 
   constructor(public props: ElementPaletteProps, public state: ElementPaletteState) {
     super(props, state);
@@ -52,23 +53,23 @@ export class ElementPalette extends Component<ElementPaletteProps, ElementPalett
         <div>
             <ElementPreview elementType={this.state.elementType} x={this.state.previewX} y={this.state.previewY} />
         </div>
-
     </div>;
   }
 
   onPointerDown(evt: h.JSX.TargetedPointerEvent<HTMLDivElement>): void {
-    if (evt.buttons == 1)
+    if (evt.buttons == 1) {
       this.placeElement(evt);
+      this.active = true;
+    }
   }
 
   onPointerUp(evt: h.JSX.TargetedPointerEvent<HTMLDivElement>): void {
     this.setState({ elementType: null }); // close preview
+    this.active = false;
   }
 
   onPointerMove(evt: MouseEvent): void {
-    if (evt.buttons != 1)
-      return;
-    if (!this.state.elementType)
+    if (evt.buttons != 1 || !this.active)
       return;
 
     evt.preventDefault();
@@ -86,7 +87,8 @@ export class ElementPalette extends Component<ElementPaletteProps, ElementPalett
     if (evt.clientX - docBBox.x > this.state.previewX) {
       if (this.props.onDragging) {
         this.setState({ elementType: null }); // close preview
-
+        this.active = false;
+        
         if (this.props.onDragging)
           this.props.onDragging(this.state.elementType, evt);
       }

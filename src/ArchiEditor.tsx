@@ -201,7 +201,6 @@ export class ArchiEditor extends Component<ArchiEditorProps, ArchiEditorState> {
         element: element, 
       }
     } as IDiagramChange);
-    this.diagramEditor.startDragging(element.id, mousePos);
-    console.log('start new element ' + elementType);
+    this.diagramEditor.startDragging(element.id, mousePos, true);
   }
 }

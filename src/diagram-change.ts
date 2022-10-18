@@ -7,6 +7,7 @@ export class ChangeFunctions {
     return <IDiagramChange>{
       action: change.action,
       diagramId: change.diagramId,
+      chainedToParent: change.chainedToParent,
       move: undoMove(change.move),
       connection: undoConnection(change.connection),
       edit: undoEdit(change.edit),
@@ -87,6 +88,7 @@ export class ChangeFunctions {
 export interface IDiagramChange {
   action: ChangeAction;
   diagramId: string;
+  chainedToParent: boolean;
   move: IDiagramChangeMove;
   connection: IDiagramChangeConnection;
   edit: IDiagramChangeEdit;

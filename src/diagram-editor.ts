@@ -115,7 +115,6 @@ export class DiagramEditor {
     this.renderer.highlightedElementId = clickedElementId;
     this.renderer.selectedRelationId = target.closest('.con')?.id;
 
-    console.log('select ' + this.selectedElementId);
     const controlKeyDown = evt.ctrlKey;
     this.activeDragging = false;
 
@@ -250,23 +249,24 @@ export class DiagramEditor {
     this.changeManager.finalizeChange(change);
   }
 
-  public startDragging(elementId: string, mousePosition: {x: number, y: number}) {
+  public startDragging(elementId: string, mousePosition: {x: number, y: number}, chainedToParent = false) {
     this.startDragMousePosition = mousePosition;
     this.activeDragging = false;
     this.selectedElementId = elementId;
     this.renderer.highlightedElementId = elementId;
     this.renderer.removeElementSelections();
     this.renderer.addElementSelection(this.selectedElementId);
-    this.editMoveStart();
+    this.editMoveStart(chainedToParent);
   }
 
-  private editMoveStart() {
+  private editMoveStart(chainedToParent = false) {
     const diagramElement = this.diagram.getDiagramObjectById(this.selectedElement.id) as ArchiDiagramChild;
     this.startDragMouseOffset = { x: this.startDragMousePosition.x - diagramElement.AbsolutePosition.x, y: this.startDragMousePosition.y - diagramElement.AbsolutePosition.y };
 
     this.changeManager.startChange(<IDiagramChange>{
       action: ChangeAction.Move,
       diagramId: this.diagram.id,
+      chainedToParent: chainedToParent,
       move: {
         elementId: this.selectedElement.id,
         positionNew: { x: diagramElement.AbsolutePosition.x, y: diagramElement.AbsolutePosition.y, width: diagramElement.bounds.width, height: diagramElement.bounds.height },
@@ -643,6 +643,13 @@ class ChangeManager {
     this.currentChange = ChangeFunctions.undoChange(this.currentChange);
     this.changer.doDiagramChange();
     this.changer.doSvgChange();
+    while (this.currentChange.chainedToParent) {
+      this.currentChange = this.changeHistory.pop();
+      this.changeHistoryIndex--;
+      this.currentChange = ChangeFunctions.undoChange(this.currentChange);
+      this.changer.doDiagramChange();
+      this.changer.doSvgChange();
+    }
     this.currentChange = null;
   }
 
@@ -677,12 +684,18 @@ console.log(`finalizeChange ${ChangeAction[this.currentChange?.action]}`);
       this.undoActive();
       return;
     }
-    if (this.changeHistoryIndex == 0)
-      return;
-    this.changeHistoryIndex--;
-    this.currentChange = ChangeFunctions.undoChange(this.changeHistory[this.changeHistoryIndex]);
-    this.changer.doDiagramChange();
-    this.changer.doSvgChange();
+    // eslint-disable-next-line no-constant-condition
+    for (;;) {
+      if (this.changeHistoryIndex == 0)
+        break;
+      this.changeHistoryIndex--;
+      
+      this.currentChange = ChangeFunctions.undoChange(this.changeHistory[this.changeHistoryIndex]);
+      this.changer.doDiagramChange();
+      this.changer.doSvgChange();
+      if (!this.currentChange.chainedToParent)
+        break;
+    }
     this.currentChange = null;
   }
 
@@ -691,12 +704,16 @@ console.log(`finalizeChange ${ChangeAction[this.currentChange?.action]}`);
       this.undoActive();
       return;
     }
-    if (this.changeHistoryIndex >= this.changeHistory.length)
-      return;
-    this.currentChange = this.changeHistory[this.changeHistoryIndex];
-    this.changeHistoryIndex++;
-    this.changer.doDiagramChange();
-    this.changer.doSvgChange();
+    for (;;) {
+      if (this.changeHistoryIndex >= this.changeHistory.length)
+        return;
+      this.currentChange = this.changeHistory[this.changeHistoryIndex];
+      this.changeHistoryIndex++;
+      this.changer.doDiagramChange();
+      this.changer.doSvgChange();
+      if (this.changeHistoryIndex >= this.changeHistory.length || !this.changeHistory[this.changeHistoryIndex].chainedToParent)
+        break;
+    }
     this.currentChange = null;
   }
 }
