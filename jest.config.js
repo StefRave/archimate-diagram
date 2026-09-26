@@ -8,7 +8,7 @@ module.exports = {
     '^.+\\.tsx?$': '<rootDir>/jest-config/import-meta-transform.js',
     ".(jpg|jpeg|png|gif|eot|otf|webp|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$": "<rootDir>/jest-config/file-mock.js",
     '.(css|less)$': '<rootDir>/jest-config/style-mock.js',
-    '.(svg|archimate)(\\?raw)?$': '<rootDir>/jest-config/content-mock.js'
+    '.(svg|archimate)$': '<rootDir>/jest-config/content-mock.js'
   },
   moduleNameMapper: {
     '^(.*\\.svg)\\?raw$': '$1',
