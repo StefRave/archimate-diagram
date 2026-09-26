@@ -9,7 +9,7 @@ export class ArchimateProjectStorage {
     return response.arrayBuffer();
   }
 
-  public static async GetProjectFromArrayBuffer(file: ArrayBuffer): Promise<ArchimateProject> {
+  public static async GetProjectFromArrayBuffer(file: ArrayBuffer | Uint8Array): Promise<ArchimateProject> {
     const start = new Int8Array(file.slice(0, 2));
     let data = file;
     let zip: JSZip = null;

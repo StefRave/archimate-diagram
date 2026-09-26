@@ -25,7 +25,7 @@ export class ArchiEditor extends Component<ArchiEditorProps, ArchiEditorState> {
 
   async componentWillMount() {
 
-    let projectData: ArrayBuffer;
+    let projectData: ArrayBuffer | Uint8Array;
     const lastProjectBase64 = window.localStorage.getItem('lastProject');
     if (lastProjectBase64)
       projectData = Base64.toArrayBuffer(lastProjectBase64);
