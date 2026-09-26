@@ -39,8 +39,13 @@ function chord(target: Element, key: string) {
   target.dispatchEvent(new KeyboardEvent('keydown', { key, ctrlKey: true, bubbles: true }));
 }
 
-function mount(project: ArchimateProject) {
-  const diagram = project.diagrams.find(d => d.id === '3761');
+async function reload(project: ArchimateProject): Promise<ArchimateProject> {
+  const xml = new XMLSerializer().serializeToString(project.element.ownerDocument);
+  return ArchimateProjectStorage.GetProjectFromArrayBuffer(new TextEncoder().encode(xml));
+}
+
+function mount(project: ArchimateProject, diagramId = '3761') {
+  const diagram = project.diagrams.find(d => d.id === diagramId);
   const renderer = new DiagramRenderer(project, diagram, DiagramTemplate.getFromDrawing());
   const svg = renderer.buildSvg().firstChild as SVGSVGElement;
   document.body.appendChild(svg);
@@ -65,7 +70,7 @@ describe('diagram editor gestures', () => {
     svg.remove();
   });
 
-  it('moves Customer on the grid and clears the position readout', () => {
+  it('moves Customer on the grid and clears the position readout', async () => {
     const customer = diagram.getDiagramObjectById('3788') as ArchiDiagramChild;
     expect(box(customer)).toEqual([200, 663, 120, 60]);
 
@@ -84,9 +89,14 @@ describe('diagram editor gestures', () => {
     expect(svg.getElementById('3788').getAttribute('transform')).toBe('translate(240, 684)');
     expect(nameText(svg.getElementById('3788'))).toBe('Customer');
     expect(svg.querySelector('#editInfo')).toBeNull();
+
+    const reloaded = (await reload(project)).diagrams.find(d => d.id === '3761');
+    const saved = reloaded.getDiagramObjectById('3788') as ArchiDiagramChild;
+    expect(box(saved)).toEqual([240, 684, 120, 60]);
+    expect(saved.parent).toBeNull();
   });
 
-  it('lifts Register onto the diagram and undo nests it again', () => {
+  it('lifts Register onto the diagram and undo nests it again', async () => {
     const register = diagram.getDiagramObjectById('3779') as ArchiDiagramChild;
     expect([register.AbsolutePosition.x, register.AbsolutePosition.y]).toEqual([190, 174]);
     expect(box(register)).toEqual([20, 20, 120, 60]);
@@ -102,15 +112,25 @@ describe('diagram editor gestures', () => {
     expect(svg.getElementById('3779').parentElement).toBe(svg.getElementById('3761'));
     expect(svg.getElementById('3779').getAttribute('transform')).toBe('translate(216, 192)');
 
+    const lifted = (await reload(project)).diagrams.find(d => d.id === '3761');
+    const liftedRegister = lifted.getDiagramObjectById('3779') as ArchiDiagramChild;
+    expect(liftedRegister.parent).toBeNull();
+    expect(box(liftedRegister)).toEqual([216, 192, 120, 60]);
+
     chord(svg.getElementById('3779'), 'z');
 
     expect(register.parent.id).toBe('3776');
     expect(box(register)).toEqual([20, 20, 120, 60]);
     expect(svg.getElementById('3779').getAttribute('transform')).toBe('translate(20, 20)');
     expect(svg.getElementById('3779').parentElement).toBe(svg.getElementById('3776'));
+
+    const restored = (await reload(project)).diagrams.find(d => d.id === '3761');
+    const nested = restored.getDiagramObjectById('3779') as ArchiDiagramChild;
+    expect(nested.parent.id).toBe('3776');
+    expect(box(nested)).toEqual([20, 20, 120, 60]);
   });
 
-  it('resizes Customer from the east handle and floors the width at 12', () => {
+  it('resizes Customer from the east handle and floors the width at 12', async () => {
     const customer = diagram.getDiagramObjectById('3788') as ArchiDiagramChild;
     const group = svg.getElementById('3788');
     pointer('pointerdown', group, 200, 663);
@@ -137,9 +157,12 @@ describe('diagram editor gestures', () => {
     expect(narrowed.getAttribute('transform')).toBe('translate(200, 663)');
     expect(narrowed.querySelector('rect').getAttribute('width')).toBe('12');
     expect(narrowed.querySelector('rect').getAttribute('height')).toBe('60');
+
+    const saved = (await reload(project)).diagrams.find(d => d.id === '3761').getDiagramObjectById('3788') as ArchiDiagramChild;
+    expect(box(saved)).toEqual([200, 663, 12, 60]);
   });
 
-  it('inserts a bend on connection 3812 and undo restores the single point', () => {
+  it('inserts a bend on connection 3812 and undo restores the single point', async () => {
     const customer = diagram.getDiagramObjectById('3788') as ArchiDiagramChild;
     const connection = customer.sourceConnections.find(c => c.id === '3812');
     expect(connection.bendPoints.map(p => [p.x, p.y])).toEqual([[-180, -1]]);
@@ -152,6 +175,10 @@ describe('diagram editor gestures', () => {
     pointer('pointerup', svg, 140, 640);
 
     expect(connection.bendPoints.map(p => [p.x, p.y])).toEqual([[-116, -57], [-180, -1]]);
+    const savedBend = (await reload(project)).diagrams.find(d => d.id === '3761')
+      .getDiagramObjectById('3788') as ArchiDiagramChild;
+    expect(savedBend.sourceConnections.find(c => c.id === '3812').bendPoints.map(p => [p.x, p.y]))
+      .toEqual([[-116, -57], [-180, -1]]);
     expect(connection.source.id).toBe('3788');
     expect(connection.targetId).toBe('3783');
     const line = svg.getElementById('3812');
@@ -161,9 +188,13 @@ describe('diagram editor gestures', () => {
 
     chord(svg.getElementById('3788'), 'z');
     expect(connection.bendPoints.map(p => [p.x, p.y])).toEqual([[-180, -1]]);
+    const undone = (await reload(project)).diagrams.find(d => d.id === '3761')
+      .getDiagramObjectById('3788') as ArchiDiagramChild;
+    expect(undone.sourceConnections.find(c => c.id === '3812').bendPoints.map(p => [p.x, p.y]))
+      .toEqual([[-180, -1]]);
   });
 
-  it('renames Customer from a double-click and undoes and redoes the name', () => {
+  it('renames Customer from a double-click and undoes and redoes the name', async () => {
     jest.useFakeTimers();
     try {
       const customer = diagram.getDiagramObjectById('3788') as ArchiDiagramChild;
@@ -188,21 +219,25 @@ describe('diagram editor gestures', () => {
       expect(previous.isConnected).toBe(false);
       expect(nameText(svg.getElementById('3788'))).toBe('Client');
       expect(box(customer)).toEqual([200, 663, 120, 60]);
+      expect((await reload(project)).getById('521').name).toBe('Client');
 
       chord(svg.getElementById('3788'), 'z');
       expect(project.getById('521').name).toBe('Customer');
       expect(nameText(svg.getElementById('3788'))).toBe('Customer');
 
+      expect((await reload(project)).getById('521').name).toBe('Customer');
+
       chord(svg.getElementById('3788'), 'y');
       expect(project.getById('521').name).toBe('Client');
       expect(nameText(svg.getElementById('3788'))).toBe('Client');
       expect(box(customer)).toEqual([200, 663, 120, 60]);
+      expect((await reload(project)).getById('521').name).toBe('Client');
     } finally {
       jest.useRealTimers();
     }
   });
 
-  it('adds a Business Actor at the pointer and undo and redo that placement', () => {
+  it('adds a Business Actor at the pointer and undo and redo that placement', async () => {
     const entity = new ArchiEntity();
     entity.id = 'id-entity-test';
     entity.name = 'Business Actor';
@@ -236,16 +271,27 @@ describe('diagram editor gestures', () => {
     expect(svg.getElementById('id-element-test').getAttribute('transform')).toBe('translate(156, 156)');
     expect(nameText(svg.getElementById('id-element-test'))).toBe('Business Actor');
     expect(project.getById('id-entity-test')).toBeTruthy();
+    const placedProject = await reload(project);
+    const placedDiagram = placedProject.diagrams.find(d => d.id === '3761');
+    expect(box(placedDiagram.getDiagramObjectById('id-element-test') as ArchiDiagramChild)).toEqual([156, 156, 168, 60]);
+    expect(placedProject.getById('id-entity-test').name).toBe('Business Actor');
 
     chord(svg.getElementById('3788'), 'z');
     expect(svg.getElementById('id-element-test')).toBeNull();
     expect(project.getById('id-entity-test')).toBeUndefined();
+    const removed = await reload(project);
+    expect(removed.diagrams.find(d => d.id === '3761').getDiagramObjectById('id-element-test')).toBeUndefined();
+    expect(removed.getById('id-entity-test')).toBeUndefined();
 
     chord(svg.getElementById('3788'), 'y');
     const restored = diagram.getDiagramObjectById('id-element-test') as ArchiDiagramChild;
     expect(box(restored)).toEqual([156, 156, 168, 60]);
     expect(svg.getElementById('id-element-test').getAttribute('transform')).toBe('translate(156, 156)');
     expect(project.getById('id-entity-test')).toBeTruthy();
+    const redone = await reload(project);
+    expect(box(redone.diagrams.find(d => d.id === '3761').getDiagramObjectById('id-element-test') as ArchiDiagramChild))
+      .toEqual([156, 156, 168, 60]);
+    expect(redone.getById('id-entity-test').name).toBe('Business Actor');
   });
 
   it('does not move an element when the pointer travels less than 5', () => {
@@ -257,5 +303,46 @@ describe('diagram editor gestures', () => {
 
     expect(box(customer)).toEqual([200, 663, 120, 60]);
     expect(svg.getElementById('3788').getAttribute('transform')).toBe('translate(200, 663)');
+  });
+});
+
+describe('group label', () => {
+  it('renames a group and keeps the label after the file is parsed again', async () => {
+    jest.useFakeTimers();
+    const project = await ArchimateProjectStorage.GetProjectFromArrayBuffer(readRepoFile('Archisurance.archimate'));
+    const { diagram, svg, editor } = mount(project, '4056');
+    try {
+      const group = diagram.getDiagramObjectById('4096') as ArchiDiagramChild;
+      expect(group.entityId).toBeFalsy();
+      expect(group.name).toBe('External Application Services');
+
+      let node = svg.getElementById('4096');
+      pointer('pointerdown', node, 20, 510);
+      pointer('pointerup', node, 20, 510);
+      node = svg.getElementById('4096');
+      pointer('pointerdown', node, 20, 510);
+      pointer('pointerup', node, 20, 510);
+      jest.runOnlyPendingTimers();
+
+      const label = svg.getElementById('4096').querySelector(':scope>foreignObject>div>div') as HTMLElement;
+      label.textContent = 'Renamed Group';
+      svg.dispatchEvent(new Event('input', { bubbles: true }));
+      label.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
+
+      expect(group.name).toBe('Renamed Group');
+      expect(nameText(svg.getElementById('4096'))).toBe('Renamed Group');
+
+      const reloaded = await reload(project);
+      const saved = reloaded.diagrams.find(d => d.id === '4056').getDiagramObjectById('4096') as ArchiDiagramChild;
+      expect(saved.name).toBe('Renamed Group');
+      const again = mount(reloaded, '4056');
+      expect(nameText(again.svg.getElementById('4096'))).toBe('Renamed Group');
+      again.editor.dispose();
+      again.svg.remove();
+    } finally {
+      editor.dispose();
+      svg.remove();
+      jest.useRealTimers();
+    }
   });
 });

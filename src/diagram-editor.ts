@@ -1,6 +1,94 @@
-import { ArchiDiagram, ArchiDiagramChild, ArchimateProject, ArchiSourceConnection, ElementBounds, ElementPos } from './archimate-model';
+import { ArchiDiagram, ArchiDiagramChild, ArchiEntity, ArchimateProject, ArchiSourceConnection, ElementBounds, ElementPos } from './archimate-model';
 import { DiagramRenderer } from './diagram-renderer';
 import { ChangeAction, ChangeFunctions, IDiagramChange, IXy } from './diagram-change';
+
+const XSI_TYPE = 'xsi:type';
+
+function directChild(node: Element, name: string): Element {
+  return Array.from(node.children).find(child => child.nodeName === name);
+}
+
+function writeBounds(child: ArchiDiagramChild) {
+  if (!child.element)
+    return;
+  let bounds = directChild(child.element, 'bounds');
+  if (!bounds) {
+    bounds = child.element.ownerDocument.createElement('bounds');
+    child.element.insertBefore(bounds, child.element.firstChild);
+  }
+  bounds.setAttribute('x', String(child.bounds.x));
+  bounds.setAttribute('y', String(child.bounds.y));
+  bounds.setAttribute('width', String(child.bounds.width));
+  bounds.setAttribute('height', String(child.bounds.height));
+}
+
+function writeDiagramParent(child: ArchiDiagramChild, diagram: ArchiDiagram) {
+  if (!child.element)
+    return;
+  const parentNode = child.parent?.element ?? diagram.element;
+  if (child.element.parentElement !== parentNode)
+    parentNode.appendChild(child.element);
+}
+
+function writeBendPoints(connection: ArchiSourceConnection) {
+  const node = connection.element;
+  if (!node)
+    return;
+  const existing = Array.from(node.children).filter(child => child.nodeName === 'bendpoint' || child.nodeName === 'bendpoints');
+  connection.bendPoints.forEach((point, index) => {
+    let bend = existing[index];
+    if (!bend) {
+      bend = node.ownerDocument.createElement('bendpoint');
+      node.appendChild(bend);
+    }
+    bend.setAttribute('startX', String(point.x));
+    bend.setAttribute('startY', String(point.y));
+  });
+  for (let index = connection.bendPoints.length; index < existing.length; index++)
+    existing[index].remove();
+}
+
+function xsiType(entityType: string): string {
+  if (!entityType)
+    return 'archimate:DiagramObject';
+  return entityType.includes(':') ? entityType : 'archimate:' + entityType;
+}
+
+function folderForType(project: ArchimateProject, type: string): Element {
+  const elements = project.element.ownerDocument.getElementsByTagName('element');
+  for (const element of Array.from(elements)) {
+    if (element.getAttribute(XSI_TYPE) === type && element.parentElement)
+      return element.parentElement;
+  }
+  return project.element.getElementsByTagName('folder')[0];
+}
+
+function ensureConceptElement(entity: ArchiEntity, project: ArchimateProject) {
+  const type = xsiType(entity.entityType);
+  if (!entity.element) {
+    const element = project.element.ownerDocument.createElement('element');
+    element.setAttribute(XSI_TYPE, type);
+    element.setAttribute('id', entity.id);
+    element.setAttribute('name', entity.name ?? '');
+    entity.element = element;
+  }
+  if (!entity.element.parentElement)
+    folderForType(project, type).appendChild(entity.element);
+  entity.element.setAttribute('name', entity.name ?? '');
+}
+
+function ensureDiagramObjectElement(child: ArchiDiagramChild, diagram: ArchiDiagram) {
+  if (!child.element) {
+    const element = diagram.element.ownerDocument.createElement('child');
+    element.setAttribute(XSI_TYPE, xsiType(child.entityType));
+    element.setAttribute('id', child.id);
+    if (child.entityId)
+      element.setAttribute('archimateElement', child.entityId);
+    child.element = element;
+  }
+  writeBounds(child);
+  writeDiagramParent(child, diagram);
+}
 
 export class DiagramEditor {
   private readonly contentElement: SVGGElement;
@@ -475,11 +563,12 @@ class EditMoveAction extends EditAction {
 
     const element = renderer.diagram.getDiagramObjectById(change.elementId) as ArchiDiagramChild;
     const parentElement = change.parentIdNew == renderer.diagram.id ? null : renderer.diagram.getDiagramObjectById(change.parentIdNew) as ArchiDiagramChild;
-    if (element.parent != parentElement) {
-      const diagram = project.diagrams.find(d => d.id == diagramChange.diagramId);
+    const diagram = project.diagrams.find(d => d.id == diagramChange.diagramId);
+    if (element.parent != parentElement)
       diagram.setElement(element, parentElement);
-    }
     element.bounds = new ElementBounds(change.positionNew.x, change.positionNew.y, change.positionNew.width, change.positionNew.height);
+    writeBounds(element);
+    writeDiagramParent(element, diagram);
   }
 
   public doSvgChange(change: IDiagramChange, renderer: DiagramRenderer, changeState: ChangeState): void {
@@ -540,6 +629,7 @@ class EditConnectionAction extends EditAction {
     const sourceConnection = renderer.diagram.getDiagramObjectById(change.sourceConnectionId) as ArchiSourceConnection;
     const bendPoints = change.bendPointsNew.map(xy => <ElementPos>{ x: xy.x, y: xy.y});
     sourceConnection.bendPoints = bendPoints;
+    writeBendPoints(sourceConnection);
   }
 
   public doSvgChange(change: IDiagramChange, renderer: DiagramRenderer): void {
@@ -555,8 +645,20 @@ class EditEditAction extends EditAction {
     if (element.entityId) {
       const archiElement = project.getById(element.entityId)
       archiElement.name = change.textNew;
+      archiElement.element?.setAttribute('name', change.textNew);
+    } else if (element.entityType === 'Group') {
+      element.name = change.textNew;
+      element.element?.setAttribute('name', change.textNew);
     } else {
       element.content = change.textNew;
+      if (element.element) {
+        let content = directChild(element.element, 'content');
+        if (!content) {
+          content = element.element.ownerDocument.createElement('content');
+          element.element.appendChild(content);
+        }
+        content.textContent = change.textNew;
+      }
     }
   }
 
@@ -579,6 +681,7 @@ class EditAddRemoveElement extends EditAction {
     const change = diagramChange.addRemoveElement;
     if (change.adding) {
       if (change.entity) {
+        ensureConceptElement(change.entity, project);
         let entity = project.getById(change.entity.id);
         if (!entity) {
           entity = {...change.entity}; // shallow clone. Is this a good idea?
@@ -586,9 +689,12 @@ class EditAddRemoveElement extends EditAction {
         }
       }
       renderer.diagram.setElement(change.element, null);
+      ensureDiagramObjectElement(change.element, renderer.diagram);
     }
     else {
+      change.element.element?.remove();
       if (change.entity) {
+        change.entity.element?.remove();
         project.removeEntity(change.entity);
       }
       renderer.diagram.removeElement(change.element);

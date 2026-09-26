@@ -8,6 +8,8 @@ Given Customer 3788 at (200, 663, 120, 60), when it is dragged and released, the
 
 Test: `moves Customer on the grid and clears the position readout`
 
+Parsing the document after the drag yields the same bounds. The same check follows the lift, its undo, and the resize.
+
 ## Lift Register
 
 Given Register 3779 inside Handle Claim 3776, when it is lifted onto the diagram, then it is at (216, 192) with no parent. Ctrl+Z restores parent 3776 and bounds (20, 20).

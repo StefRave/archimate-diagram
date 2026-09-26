@@ -6,4 +6,6 @@ Given Customer 3788, entity 521, when it is double-clicked and the label is set 
 
 Test: `renames Customer from a double-click and undoes and redoes the name`
 
-Group rename does not stick. That is a known defect, not locked by a test. `EditEditAction` writes `element.content` when there is no entity id. The grouping draw uses `child.name`.
+A group has no entity id. Renaming it sets `child.name`, which is the label the grouping figure draws. Parsing the document again keeps that name.
+
+Test: `renames a group and keeps the label after the file is parsed again`

@@ -15,3 +15,7 @@ Renamed `src/greeter.ts` to `src/archimate-model.ts` and removed gesture logging
 Added Chromium tests for a group drop, a scaled drag, and typing. The Firefox newline is still not a test.
 
 - `e2e/browser-only.spec.ts`
+
+## 2026-09-26
+
+Edits write the XML element the object already holds. A group rename updates the label that is drawn. Both are locked by `src/diagram-editor.spec.ts`.
