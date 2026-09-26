@@ -1,4 +1,4 @@
-import { ArchimateProject, ArchiEntity, ArchiSourceConnection } from './greeter';
+import { ArchimateProject, ArchiEntity, ArchiSourceConnection } from './archimate-model';
 
 
 export class ProjectTools {

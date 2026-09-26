@@ -1,6 +1,6 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import { ArchimateProject, ArchimateProjectStorage } from './greeter';
+import { ArchimateProject, ArchimateProjectStorage } from './archimate-model';
 import { DiagramRenderer } from './diagram-renderer';
 import { DiagramTemplate } from './diagram-template';
 

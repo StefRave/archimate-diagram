@@ -1,5 +1,5 @@
 import { Base64 } from "./util/base64";
-import { ArchimateProject } from "./greeter";
+import { ArchimateProject } from "./archimate-model";
 
 /**
  * Adds images to the #imageDefs section in the defs element of the SVG.

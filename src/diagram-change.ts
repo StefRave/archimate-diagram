@@ -1,5 +1,5 @@
 import equal from 'fast-deep-equal';
-import { ArchiDiagramChild, ArchiEntity } from './greeter';
+import { ArchiDiagramChild, ArchiEntity } from './archimate-model';
 
 export class ChangeFunctions {
 

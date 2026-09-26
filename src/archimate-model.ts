@@ -38,15 +38,13 @@ export class ArchimateProjectStorage {
     o.type = e.getAttribute('type');
     o.diagrams = [];
     o.folders = [];
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    let purpose: Element;
     Array.from(e.children).forEach(c => {
       if (c.localName == 'folder')
         o.folders.push(this.ToFolder(c));
       else if (c.localName == 'element')
         o.diagrams.push(this.ToArchiObject(c));
-      else if (c.localName == 'purpose')
-        purpose = c;
+      else if (c.localName == 'purpose') {
+      }
       else if (import.meta.env.MODE !== 'production')
         throw new Error('Unknown element ' + c.localName);
     });

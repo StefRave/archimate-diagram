@@ -1,5 +1,5 @@
 import { Component, VNode, h, ComponentChild } from 'preact';
-import { ArchiEntity, ArchiFolder, ArchimateProject } from './greeter';
+import { ArchiEntity, ArchiFolder, ArchimateProject } from './archimate-model';
 
 export type ArchiEntityTreeProps = {
     project: ArchimateProject;

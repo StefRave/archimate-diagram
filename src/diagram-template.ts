@@ -1,5 +1,5 @@
 import svgSource from './archimate.svg?raw';
-import { ElementBounds } from './greeter';
+import { ElementBounds } from './archimate-model';
 
 export class DiagramTemplate {
   private readonly elementByType: Map<string, Element>;

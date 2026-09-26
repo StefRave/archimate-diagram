@@ -7,3 +7,5 @@ Ingested the load, render, and editor tests.
 - `src/project-load.spec.ts`
 - `src/diagram-render.spec.ts`
 - `src/diagram-editor.spec.ts`
+
+Renamed `src/greeter.ts` to `src/archimate-model.ts` and removed gesture logging.

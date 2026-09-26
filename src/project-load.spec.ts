@@ -1,7 +1,7 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import JSZip from 'jszip';
-import { ArchiDiagramChild, ArchimateProjectStorage, Relationship } from './greeter';
+import { ArchiDiagramChild, ArchimateProjectStorage, Relationship } from './archimate-model';
 
 function readRepoFile(name: string): ArrayBuffer {
   const buffer = readFileSync(join(__dirname, name));

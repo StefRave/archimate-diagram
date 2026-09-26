@@ -4,7 +4,7 @@ import { ChangeAction, IDiagramChange } from './diagram-change';
 import { DiagramEditor } from './diagram-editor';
 import { DiagramRenderer } from './diagram-renderer';
 import { DiagramTemplate } from './diagram-template';
-import { ArchiDiagram, ArchiDiagramChild, ArchiEntity, ArchimateProject, ArchimateProjectStorage, ElementBounds } from './greeter';
+import { ArchiDiagram, ArchiDiagramChild, ArchiEntity, ArchimateProject, ArchimateProjectStorage, ElementBounds } from './archimate-model';
 
 function readRepoFile(name: string): ArrayBuffer {
   const buffer = readFileSync(join(__dirname, name));

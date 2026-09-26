@@ -1,4 +1,4 @@
-import { ArchiDiagram, ArchiDiagramChild, ArchimateProject, ArchiSourceConnection, ElementBounds, ElementPos } from './greeter';
+import { ArchiDiagram, ArchiDiagramChild, ArchimateProject, ArchiSourceConnection, ElementBounds, ElementPos } from './archimate-model';
 import { DiagramRenderer } from './diagram-renderer';
 import { ChangeAction, ChangeFunctions, IDiagramChange, IXy } from './diagram-change';
 
@@ -90,7 +90,6 @@ export class DiagramEditor {
   }
 
   private onTouchStart(evt: TouchEvent) {
-    console.log('onTouchStart ' + this.changeManager.activeAction || this.selectedElement);
     if (this.changeManager.activeAction || this.selectedElement) {
       evt.preventDefault();
       evt.stopImmediatePropagation();
@@ -654,7 +653,6 @@ class ChangeManager {
   }
 
   startChange(change: IDiagramChange) {
-console.log(`startChange ${ChangeAction[change.action]}`);
     this.currentChange = change;
   }
   
@@ -666,7 +664,6 @@ console.log(`startChange ${ChangeAction[change.action]}`);
 
 
   public finalizeChange(change: IDiagramChange = this.currentChange) {
-console.log(`finalizeChange ${ChangeAction[this.currentChange?.action]}`);
     this.currentChange = change;
     this.changer.doDiagramChange();
     this.changer.doSvgChange();

@@ -1,4 +1,4 @@
-import { ArchimateProject, ArchiDiagram, ArchiDiagramChild, ElementPos, ArchiDiagramObject, ArchiEntity, ArchiSourceConnection, ImagePosition, TextPosition, TextAlignment, SourceConnectionType } from './greeter';
+import { ArchimateProject, ArchiDiagram, ArchiDiagramChild, ElementPos, ArchiDiagramObject, ArchiEntity, ArchiSourceConnection, ImagePosition, TextPosition, TextAlignment, SourceConnectionType } from './archimate-model';
 import { DiagramTemplate, EditInfoElement, ElementSelectionElement } from './diagram-template';
 import { DiagramImageCache } from './diagram-image-cache';
 

@@ -6,7 +6,7 @@ import { DiagramEditor } from './diagram-editor';
 import { DiagramRenderer } from './diagram-renderer';
 import { DiagramTemplate } from './diagram-template';
 import { ElementPalette } from './ElementPalette';
-import { ArchiDiagram, ArchiDiagramChild, ArchiEntity, ArchimateProject, ArchimateProjectStorage, ElementBounds } from './greeter';
+import { ArchiDiagram, ArchiDiagramChild, ArchiEntity, ArchimateProject, ArchimateProjectStorage, ElementBounds } from './archimate-model';
 import { Base64 } from './util/base64';
 import { v4 as uuidv4 } from 'uuid';
 

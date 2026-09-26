@@ -1,6 +1,6 @@
 import { Component, VNode, h, ComponentChild, createRef, RefObject } from 'preact';
 import { ArchimateElementInfo, DiagramTemplate, IArchimateElementInfo } from './diagram-template';
-import { ElementBounds } from './greeter';
+import { ElementBounds } from './archimate-model';
 import styles from './component.module.css'
 
 // eslint-disable-next-line @typescript-eslint/ban-types
