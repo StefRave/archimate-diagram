@@ -177,7 +177,7 @@ describe('diagram editor gestures', () => {
 
       jest.runOnlyPendingTimers();
 
-      const label = nameElement(svg.getElementById('3788'));
+      const label = svg.getElementById('3788').querySelector(':scope>foreignObject>div>div') as HTMLElement;
       label.textContent = 'Client';
       svg.dispatchEvent(new Event('input', { bubbles: true }));
       expect(project.getById('521').name).toBe('Client');
@@ -259,7 +259,3 @@ describe('diagram editor gestures', () => {
     expect(svg.getElementById('3788').getAttribute('transform')).toBe('translate(200, 663)');
   });
 });
-
-function nameElement(group: Element): HTMLElement {
-  return group.querySelector(':scope>foreignObject>div>div') as HTMLElement;
-}
