@@ -1,21 +1,25 @@
-const { TsJestTransformer } = require('ts-jest');
+const crypto = require('crypto');
+const esbuild = require('esbuild');
 
-// Jest runs CommonJS. Leave the source expression; rewrite it only for this compile.
-const transformer = new TsJestTransformer({
-  tsconfig: {
-    module: 'commonjs',
-  },
-});
-
+// Jest runs CommonJS. TypeScript 7 ships a native tsc and no compiler API, so tests transpile here.
 function rewriteImportMeta(src) {
   return src.replace(/import\.meta\.env\.MODE/g, 'process.env.MODE');
 }
 
 module.exports = {
-  process(src, filename, options) {
-    return transformer.process(rewriteImportMeta(src), filename, options);
+  process(src, filename) {
+    const result = esbuild.transformSync(rewriteImportMeta(src), {
+      loader: filename.endsWith('.tsx') ? 'tsx' : 'ts',
+      format: 'cjs',
+      target: 'es2017',
+      jsx: 'transform',
+      jsxFactory: 'h',
+      jsxFragment: 'Fragment',
+      sourcefile: filename,
+    });
+    return { code: result.code };
   },
-  getCacheKey(src, filename, options) {
-    return transformer.getCacheKey(rewriteImportMeta(src), filename, options);
+  getCacheKey(src, filename) {
+    return crypto.createHash('md5').update(rewriteImportMeta(src)).update(filename).digest('hex');
   },
 };
