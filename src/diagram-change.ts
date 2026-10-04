@@ -1,5 +1,5 @@
 import equal from 'fast-deep-equal';
-import { ArchiDiagramChild, ArchiEntity } from './archimate-model';
+import { ArchiDiagramChild, ArchiEntity, ArchiSourceConnection, Relationship } from './archimate-model';
 
 export class ChangeFunctions {
 
@@ -12,6 +12,7 @@ export class ChangeFunctions {
       connection: undoConnection(change.connection),
       edit: undoEdit(change.edit),
       addRemoveElement: undoAddRemoveElement(change.addRemoveElement),
+      addRemoveConnection: undoAddRemoveConnection(change.addRemoveConnection),
     }
 
     function undoMove(change: IDiagramChangeMove): IDiagramChangeMove {
@@ -56,6 +57,16 @@ export class ChangeFunctions {
         adding: !change.adding,
       };
     }
+
+    function undoAddRemoveConnection(change: IDiagramChangeAddRemoveConnection): IDiagramChangeAddRemoveConnection {
+      if (!change)
+        return null;
+      return {
+        relationship: change.relationship,
+        connection: change.connection,
+        adding: !change.adding,
+      };
+    }
   }
 
   public static isChanged(change: IDiagramChange): boolean {
@@ -66,6 +77,8 @@ export class ChangeFunctions {
     if (change.edit)
       return isEditChanged(change.edit);
     if (change.addRemoveElement)
+      return true;
+    if (change.addRemoveConnection)
       return true;
 
     throw new Error("unknown change type");
@@ -93,6 +106,7 @@ export interface IDiagramChange {
   connection: IDiagramChangeConnection;
   edit: IDiagramChangeEdit;
   addRemoveElement: IDiagramChangeAddRemoveElement;
+  addRemoveConnection: IDiagramChangeAddRemoveConnection;
 }
 
 export enum ChangeAction {
@@ -101,6 +115,7 @@ export enum ChangeAction {
   Connection,
   Edit,
   AddRemoveElement,
+  AddRemoveConnection,
 }
 
 
@@ -142,5 +157,11 @@ export interface IDiagramChangeEdit {
 export interface IDiagramChangeAddRemoveElement {
   entity: ArchiEntity;
   element: ArchiDiagramChild;
+  adding: boolean;
+}
+
+export interface IDiagramChangeAddRemoveConnection {
+  relationship: Relationship;
+  connection: ArchiSourceConnection;
   adding: boolean;
 }

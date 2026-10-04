@@ -58,6 +58,20 @@ async function drag(page: Page, from: { x: number; y: number }, to: { x: number;
   await page.mouse.move(to.x, to.y);
 }
 
+async function dragCustomerToHandleClaim(page: Page) {
+  const customer = page.locator('#svgTarget svg [id="3788"]');
+  await customer.hover();
+  const handle = page.locator('#svgTarget svg g.connectorHandle circle');
+  await handle.waitFor();
+  const handleBox = await handle.boundingBox();
+  const targetBox = await page.locator('#svgTarget svg [id="3776"]').boundingBox();
+  await page.mouse.move(handleBox.x + handleBox.width / 2, handleBox.y + handleBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(targetBox.x + 20, targetBox.y + 8, { steps: 5 });
+  await page.mouse.up();
+  await page.locator('.relation-picker').waitFor();
+}
+
 test('drops 4079 onto group 4065 and nests it', async ({ page }) => {
   await page.goto('/#1');
   await page.waitForSelector('#svgTarget svg [id="4065"]');
@@ -150,4 +164,36 @@ test('types a new Customer label from a double-click', async ({ page }) => {
   await page.locator('h1').click();
 
   expect(await label()).toEqual({ text: 'Acme', visible: 'Acme' });
+});
+
+test('connects Customer to Handle Claim from the connector handle', async ({ page }) => {
+  await page.goto('/#5');
+  await page.waitForSelector('#svgTarget svg [id="3776"]');
+  const connectionCount = () => page.locator('#svgTarget svg g.con path.Serving.Relationship').count();
+  const before = await connectionCount();
+
+  await dragCustomerToHandleClaim(page);
+  await page.keyboard.type('f');
+  await expect(page.locator('.relation-picker [role="option"]')).toHaveCount(1);
+  await expect(page.locator('.relation-picker [role="option"]').first()).toHaveAttribute('data-type', 'FlowRelationship');
+  await page.getByRole('textbox', { name: 'Search relationships' }).fill('serv');
+  await page.keyboard.press('Enter');
+
+  await expect(page.locator('.relation-picker')).toHaveCount(0);
+  await expect.poll(connectionCount).toBe(before + 1);
+  await page.keyboard.press('Control+z');
+  await expect.poll(connectionCount).toBe(before);
+});
+
+test('Escape closes the relationship picker without adding a connection', async ({ page }) => {
+  await page.goto('/#5');
+  await page.waitForSelector('#svgTarget svg [id="3776"]');
+  const before = await page.locator('#svgTarget svg g.con path.Serving.Relationship').count();
+
+  await dragCustomerToHandleClaim(page);
+  await page.keyboard.press('Escape');
+
+  await expect(page.locator('.relation-picker')).toHaveCount(0);
+  await expect(page.locator('#svgTarget svg g.con path.Serving.Relationship')).toHaveCount(before);
+  await expect(page.locator('#svgTarget svg g.connectPreview')).toHaveCount(0);
 });

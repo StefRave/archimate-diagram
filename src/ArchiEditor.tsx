@@ -2,13 +2,14 @@ import { Component, ReactNode } from 'react';
 import Split from 'split-grid';
 import { ArchiEntityTree } from './ArchiEntityTree';
 import { ChangeAction, IDiagramChange } from './diagram-change';
-import { DiagramEditor } from './diagram-editor';
+import { ConnectionRequest, DiagramEditor } from './diagram-editor';
 import { DiagramRenderer } from './diagram-renderer';
 import { DiagramTemplate } from './diagram-template';
 import { ElementPalette } from './ElementPalette';
 import { ArchiDiagram, ArchiDiagramChild, ArchiEntity, ArchimateProject, ArchimateProjectStorage, ElementBounds } from './archimate-model';
 import { Base64 } from './util/base64';
 import { v4 as uuidv4 } from 'uuid';
+import { RelationPicker } from './RelationPicker';
 
 // eslint-disable-next-line @typescript-eslint/ban-types
 export type ArchiEditorProps = {
@@ -16,6 +17,7 @@ export type ArchiEditorProps = {
 export type ArchiEditorState = {
   project: ArchimateProject;
   diagram: ArchiDiagram;
+  connectionRequest?: ConnectionRequest;
 }
 export class ArchiEditor extends Component<ArchiEditorProps, ArchiEditorState> {
 
@@ -85,6 +87,7 @@ export class ArchiEditor extends Component<ArchiEditorProps, ArchiEditorState> {
 
     const s = this.svgTarget.appendChild(svg.firstChild) as SVGSVGElement;
     this.diagramEditor = new DiagramEditor(s, project, diagram, renderer);
+    this.diagramEditor.onConnectionRequest = request => this.setState({ connectionRequest: request });
     this.diagramEditor.makeDraggable();
   }
 
@@ -115,6 +118,7 @@ export class ArchiEditor extends Component<ArchiEditorProps, ArchiEditorState> {
     const svg = this.svgTarget.childNodes[0] as SVGSVGElement;
     const svgC = svg.cloneNode(true) as SVGSVGElement;
     svgC.querySelector(':scope>rect').setAttribute('fill', '#fff');
+    svgC.querySelectorAll('g.connectorHandle, g.connectPreview').forEach(element => element.remove());
     return svgC;
   }
 
@@ -172,6 +176,20 @@ export class ArchiEditor extends Component<ArchiEditorProps, ArchiEditorState> {
         <div id="svgTarget" className="split split-horizontal">
         </div>
       </div>
+      {this.state.connectionRequest && <RelationPicker
+        key={`${this.state.connectionRequest.sourceId}>${this.state.connectionRequest.targetId}`}
+        sourceName={this.state.connectionRequest.sourceName}
+        targetName={this.state.connectionRequest.targetName}
+        relationshipTypes={this.state.connectionRequest.relationshipTypes}
+        x={this.state.connectionRequest.clientX}
+        y={this.state.connectionRequest.clientY}
+        onPreview={type => this.diagramEditor.previewConnectionType(type)}
+        onPick={type => this.diagramEditor.createConnection(
+          this.state.connectionRequest.sourceId,
+          this.state.connectionRequest.targetId,
+          type,
+        )}
+        onCancel={() => this.diagramEditor.cancelConnection()} />}
     </div>;
   }
   onDragging(elementType: string, evt: {clientX: number, clientY: number}): void {

@@ -41,6 +41,65 @@ background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAeCAY
     background-position: 50%;
 }
 
+.relation-picker {
+  position: fixed;
+  z-index: 1000;
+  width: 260px;
+  max-height: 320px;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border: 1px solid #bbb;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .2);
+  font-size: 12px;
+}
+
+.relation-picker-header {
+  padding: 4px 8px;
+  color: #555;
+}
+
+.relation-picker input {
+  margin: 0 8px 4px;
+}
+
+.relation-picker-list {
+  overflow-y: auto;
+}
+
+.relation-picker-group {
+  padding: 4px 8px 2px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #777;
+  text-transform: uppercase;
+}
+
+.relation-picker [role=option] {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  cursor: pointer;
+}
+
+.relation-picker [role=option][aria-selected=true] {
+  background: #ccf;
+}
+
+.relation-picker-description {
+  border-top: 1px solid #eee;
+  padding: 4px 8px;
+  min-height: 2.5em;
+  color: #444;
+}
+
+.relation-picker-empty {
+  padding: 6px 8px;
+  color: #777;
+}
+
 
 // Diagram tree
 

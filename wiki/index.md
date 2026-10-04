@@ -6,7 +6,7 @@ The app loads an Archi file, draws one diagram as SVG, and edits that diagram wi
 
 `ArchiEditor.componentWillMount` loads the project. The model is `src/archimate-model.ts`. `ProjectTools` is not imported by the shell; leave it. `save()` is not wired to a button. It serializes `project.element.ownerDocument`. Edits update that same XML element, so a parsed copy matches the session.
 
-There are four action classes (`EditMoveAction`, `EditConnectionAction`, `EditEditAction`, `EditAddRemoveElement`) and five `ChangeAction` values (`Move`, `Resize`, `Connection`, `Edit`, `AddRemoveElement`). Resize uses the move action.
+There are five action classes (`EditMoveAction`, `EditConnectionAction`, `EditEditAction`, `EditAddRemoveElement`, `EditAddRemoveConnection`) and six `ChangeAction` values (`Move`, `Resize`, `Connection`, `Edit`, `AddRemoveElement`, `AddRemoveConnection`). Resize uses the move action.
 
 ## Behavior
 
@@ -16,4 +16,5 @@ There are four action classes (`EditMoveAction`, `EditConnectionAction`, `EditEd
 - [Bend a connection](behavior/bend-connection.md)
 - [Edit text](behavior/edit-text.md)
 - [Add and undo](behavior/add-and-undo.md)
+- [Connect elements](behavior/connect-elements.md)
 - [Browser only](behavior/browser-only.md)

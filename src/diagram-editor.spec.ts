@@ -1,10 +1,10 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { ChangeAction, IDiagramChange } from './diagram-change';
-import { DiagramEditor } from './diagram-editor';
+import { ConnectionRequest, DiagramEditor } from './diagram-editor';
 import { DiagramRenderer } from './diagram-renderer';
 import { DiagramTemplate } from './diagram-template';
-import { ArchiDiagram, ArchiDiagramChild, ArchiEntity, ArchimateProject, ArchimateProjectStorage, ElementBounds } from './archimate-model';
+import { ArchiDiagram, ArchiDiagramChild, ArchiEntity, ArchimateProject, ArchimateProjectStorage, ElementBounds, Relationship } from './archimate-model';
 
 function readRepoFile(name: string): ArrayBuffer {
   const buffer = readFileSync(join(__dirname, name));
@@ -292,6 +292,259 @@ describe('diagram editor gestures', () => {
     expect(box(redone.diagrams.find(d => d.id === '3761').getDiagramObjectById('id-element-test') as ArchiDiagramChild))
       .toEqual([156, 156, 168, 60]);
     expect(redone.getById('id-entity-test').name).toBe('Business Actor');
+  });
+
+  it('adds a Serving relationship from Customer to Handle Claim as one undoable change', async () => {
+    editor.createConnection('3788', '3776', 'ServingRelationship', {
+      relationshipId: 'id-rel-test',
+      connectionId: 'id-con-test',
+    });
+
+    const relationship = project.getById('id-rel-test') as Relationship;
+    expect(relationship).toBeInstanceOf(Relationship);
+    expect(relationship.entityType).toBe('ServingRelationship');
+    expect(relationship.source).toBe('521');
+    expect(relationship.target).toBe('556');
+    expect(project.relationships.toArray()).toContain(relationship);
+
+    const connection = diagram.getDiagramObjectById('id-con-test') as ArchiDiagramChild['sourceConnections'][number];
+    expect(connection.source.id).toBe('3788');
+    expect(connection.targetId).toBe('3776');
+    const svgConnection = svg.getElementById('id-con-test');
+    expect(svgConnection.classList.contains('con')).toBe(true);
+    expect(svgConnection.getAttribute('data-rel')).toBe('id-rel-test');
+    expect(svgConnection.querySelector('path').getAttribute('class')).toBe('Serving Relationship');
+
+    const reloaded = await reload(project);
+    const savedRelationship = reloaded.getById('id-rel-test') as Relationship;
+    expect(savedRelationship.source).toBe('521');
+    expect(savedRelationship.target).toBe('556');
+    expect(savedRelationship.element.closest('folder[type="relations"]')).not.toBeNull();
+    const savedDiagram = reloaded.diagrams.find(d => d.id === '3761');
+    const savedSource = savedDiagram.getDiagramObjectById('3788') as ArchiDiagramChild;
+    expect(savedSource.sourceConnections.find(c => c.id === 'id-con-test').relationShipId).toBe('id-rel-test');
+    const savedTarget = savedDiagram.getDiagramObjectById('3776') as ArchiDiagramChild;
+    expect(savedTarget.element.getAttribute('targetConnections').split(/\s+/)).toContain('id-con-test');
+
+    chord(svg, 'z');
+
+    expect(project.getById('id-rel-test')).toBeUndefined();
+    expect(diagram.getDiagramObjectById('id-con-test')).toBeUndefined();
+    expect(svg.getElementById('id-con-test')).toBeNull();
+    expect(diagram.getDiagramObjectById('3812')).toBeTruthy();
+    const undone = await reload(project);
+    expect(undone.getById('id-rel-test')).toBeUndefined();
+    expect(undone.diagrams.find(d => d.id === '3761').getDiagramObjectById('id-con-test')).toBeUndefined();
+    expect((undone.diagrams.find(d => d.id === '3761').getDiagramObjectById('3776') as ArchiDiagramChild)
+      .element.hasAttribute('targetConnections')).toBe(false);
+
+    chord(svg, 'y');
+
+    expect(project.getById('id-rel-test')).toBeTruthy();
+    expect(diagram.getDiagramObjectById('id-con-test')).toBeTruthy();
+    expect(svg.getElementById('id-con-test')).toBeTruthy();
+    const redone = await reload(project);
+    expect(redone.getById('id-rel-test')).toBeTruthy();
+    expect(redone.diagrams.find(d => d.id === '3761').getDiagramObjectById('id-con-test')).toBeTruthy();
+  });
+
+  it('preserves other target connections when adding and undoing a relationship', async () => {
+    const customer = diagram.getDiagramObjectById('3788') as ArchiDiagramChild;
+    const originalTargetConnections = customer.element.getAttribute('targetConnections').split(/\s+/);
+    editor.createConnection('3785', '3788', 'AssociationRelationship', {
+      relationshipId: 'id-association-rel',
+      connectionId: 'id-association-con',
+    });
+
+    expect(customer.element.getAttribute('targetConnections').split(/\s+/))
+      .toEqual([...originalTargetConnections, 'id-association-con']);
+    chord(svg, 'z');
+    expect(customer.element.getAttribute('targetConnections').split(/\s+/)).toEqual(originalTargetConnections);
+    const undone = await reload(project);
+    expect((undone.diagrams.find(d => d.id === '3761').getDiagramObjectById('3788') as ArchiDiagramChild)
+      .element.getAttribute('targetConnections').split(/\s+/)).toEqual(originalTargetConnections);
+  });
+
+  it('shows the connector handle next to a hovered element and hides it away from it', () => {
+    pointer('pointermove', svg.getElementById('3788'), 260, 693);
+    expect(svg.querySelector('g.connectorHandle[data-element-id="3788"]').getAttribute('transform'))
+      .toBe('translate(330, 693)');
+
+    pointer('pointermove', svg, 1000, 20);
+    expect(svg.querySelector('g.connectorHandle')).toBeNull();
+  });
+
+  it('keeps the connector handle on the selected element', () => {
+    const customer = svg.getElementById('3788');
+    pointer('pointerdown', customer, 200, 663);
+    pointer('pointerup', customer, 200, 663);
+    pointer('pointermove', svg, 1000, 20);
+
+    expect(svg.querySelector('g.connectorHandle[data-element-id="3788"]')).not.toBeNull();
+  });
+
+  it('does not show a handle for a group without a concept', () => {
+    const other = mount(project, '4056');
+    try {
+      pointer('pointermove', other.svg.getElementById('4096'), 30, 520);
+      expect(other.svg.querySelector('g.connectorHandle')).toBeNull();
+    } finally {
+      other.editor.dispose();
+      other.svg.remove();
+    }
+  });
+
+  it('offers the allowed types when Customer is dropped on Handle Claim and changes nothing yet', () => {
+    const requests: (ConnectionRequest | null)[] = [];
+    editor.onConnectionRequest = request => requests.push(request);
+    const customer = diagram.getDiagramObjectById('3788') as ArchiDiagramChild;
+    const initialConnectionIds = customer.sourceConnections.map(connection => connection.id);
+    const initialRelationshipCount = project.relationships.toArray().length;
+    const handle = (source = '3788') => svg.querySelector(`g.connectorHandle[data-element-id="${source}"] circle`);
+    const beginConnectionDrag = () => {
+      pointer('pointermove', svg.getElementById('3788'), 260, 693);
+      pointer('pointerdown', handle(), 330, 693);
+    };
+    const moveConnectionToHandleClaim = () => {
+      pointer('pointermove', svg.getElementById('3776'), 500, 199);
+    };
+    const releaseConnectionOnHandleClaim = () => {
+      pointer('pointerup', svg.getElementById('3776'), 500, 199);
+    };
+
+    beginConnectionDrag();
+    moveConnectionToHandleClaim();
+    expect(svg.querySelector('g.connectPreview path').getAttribute('class')).toBe('Relationship pending');
+    expect(svg.getElementById('3776').classList.contains('connectTarget')).toBe(true);
+    releaseConnectionOnHandleClaim();
+
+    const request = requests[0] as ConnectionRequest;
+    expect(request).toMatchObject({
+      sourceId: '3788',
+      targetId: '3776',
+      sourceName: 'Customer',
+      targetName: 'Handle Claim',
+      relationshipTypes: [
+        'AssignmentRelationship',
+        'ServingRelationship',
+        'AssociationRelationship',
+        'TriggeringRelationship',
+        'FlowRelationship',
+      ],
+    });
+    expect(Number.isFinite(request.clientX)).toBe(true);
+    expect(Number.isFinite(request.clientY)).toBe(true);
+    expect(svg.getElementById('3776').classList.contains('connectTarget')).toBe(false);
+    expect(project.relationships.toArray()).toHaveLength(initialRelationshipCount);
+    expect(customer.sourceConnections.map(connection => connection.id)).toEqual(initialConnectionIds);
+
+    chord(svg, 'z');
+    expect(requests[1]).toBeNull();
+    expect(customer.sourceConnections.map(connection => connection.id)).toEqual(initialConnectionIds);
+    expect(svg.querySelector('g.connectPreview')).toBeNull();
+
+    beginConnectionDrag();
+    moveConnectionToHandleClaim();
+    releaseConnectionOnHandleClaim();
+    editor.previewConnectionType('FlowRelationship');
+    expect(svg.querySelector('g.connectPreview path').getAttribute('class')).toBe('Flow Relationship');
+    editor.createConnection('3788', '3776', 'FlowRelationship', {
+      relationshipId: 'id-preview-rel',
+      connectionId: 'id-preview-con',
+    });
+
+    expect(requests[requests.length - 1]).toBeNull();
+    expect(svg.querySelector('g.connectPreview')).toBeNull();
+    expect(svg.getElementById('id-preview-con').querySelector('path').classList.contains('Flow')).toBe(true);
+  });
+
+  it('offers only Association from Insurance Policy to Customer', () => {
+    const requests: (ConnectionRequest | null)[] = [];
+    editor.onConnectionRequest = request => requests.push(request);
+    pointer('pointermove', svg.getElementById('3785'), 490, 339);
+    const handle = svg.querySelector('g.connectorHandle[data-element-id="3785"] circle');
+    pointer('pointerdown', handle, 583, 339);
+    pointer('pointermove', svg.getElementById('3788'), 260, 693);
+    pointer('pointerup', svg.getElementById('3788'), 260, 693);
+
+    expect(requests[0].relationshipTypes).toEqual(['AssociationRelationship']);
+  });
+
+  it('Escape cancels a connection drag and leaves the model unchanged', () => {
+    const requests: (ConnectionRequest | null)[] = [];
+    editor.onConnectionRequest = request => requests.push(request);
+    const initialConnectionIds = (diagram.getDiagramObjectById('3788') as ArchiDiagramChild)
+      .sourceConnections.map(connection => connection.id);
+    pointer('pointermove', svg.getElementById('3788'), 260, 693);
+    pointer('pointerdown', svg.querySelector('g.connectorHandle circle'), 330, 693);
+    pointer('pointermove', svg.getElementById('3776'), 500, 199);
+
+    svg.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    expect(svg.querySelector('g.connectPreview')).toBeNull();
+    expect(svg.getElementById('3776').classList.contains('connectTarget')).toBe(false);
+    pointer('pointerup', svg.getElementById('3776'), 500, 199);
+
+    expect(requests).toEqual([]);
+    expect((diagram.getDiagramObjectById('3788') as ArchiDiagramChild).sourceConnections.map(connection => connection.id))
+      .toEqual(initialConnectionIds);
+  });
+
+  it('Escape closes an open relationship request', () => {
+    const requests: (ConnectionRequest | null)[] = [];
+    editor.onConnectionRequest = request => requests.push(request);
+    pointer('pointermove', svg.getElementById('3788'), 260, 693);
+    pointer('pointerdown', svg.querySelector('g.connectorHandle circle'), 330, 693);
+    pointer('pointermove', svg.getElementById('3776'), 500, 199);
+    pointer('pointerup', svg.getElementById('3776'), 500, 199);
+    expect(requests[0]).not.toBeNull();
+
+    svg.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+
+    expect(requests[1]).toBeNull();
+    expect(svg.querySelector('g.connectPreview')).toBeNull();
+  });
+
+  it('does not accept the source, a group, or a connection as the target', () => {
+    const requests: (ConnectionRequest | null)[] = [];
+    editor.onConnectionRequest = request => requests.push(request);
+    pointer('pointermove', svg.getElementById('3788'), 260, 693);
+    pointer('pointerdown', svg.querySelector('g.connectorHandle circle'), 330, 693);
+    pointer('pointermove', svg.getElementById('3788'), 260, 693);
+    expect(svg.querySelector('g.connectPreview path').getAttribute('class')).toBe('Relationship invalid');
+    expect(svg.getElementById('3788').classList.contains('connectInvalid')).toBe(true);
+    pointer('pointerup', svg.getElementById('3788'), 260, 693);
+    expect(requests).toEqual([]);
+    expect(svg.querySelector('g.connectPreview')).toBeNull();
+
+    pointer('pointermove', svg.getElementById('3788'), 260, 693);
+    pointer('pointerdown', svg.querySelector('g.connectorHandle circle'), 330, 693);
+    pointer('pointermove', svg.getElementById('3812'), 140, 692);
+    expect(svg.querySelector('g.connectPreview path').getAttribute('class')).toBe('Relationship invalid');
+    pointer('pointerup', svg.getElementById('3812'), 140, 692);
+    expect(requests).toEqual([]);
+
+    const other = mount(project, '4056');
+    try {
+      const otherRequests: (ConnectionRequest | null)[] = [];
+      other.editor.onConnectionRequest = request => otherRequests.push(request);
+      pointer('pointermove', other.svg.getElementById('4103'), 310, 550);
+      pointer('pointerdown', other.svg.querySelector('g.connectorHandle circle'), 404, 555);
+      pointer('pointermove', other.svg.getElementById('4096'), 50, 520);
+      expect(other.svg.getElementById('4096').classList.contains('connectInvalid')).toBe(true);
+      pointer('pointerup', other.svg.getElementById('4096'), 50, 520);
+      expect(otherRequests).toEqual([]);
+    } finally {
+      other.editor.dispose();
+      other.svg.remove();
+    }
+  });
+
+  it('rejects a relationship type the matrix does not allow', () => {
+    expect(() => editor.createConnection('3785', '3788', 'ServingRelationship', {
+      relationshipId: 'id-invalid-rel',
+      connectionId: 'id-invalid-con',
+    })).toThrow();
+    expect(project.getById('id-invalid-rel')).toBeUndefined();
   });
 
   it('does not move an element when the pointer travels less than 5', () => {

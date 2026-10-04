@@ -356,6 +356,27 @@
     g.selection circle.rse { cursor: se-resize; }
     g.selection circle.rsw { cursor: sw-resize; }
 
+    g.connectorHandle { pointer-events: none; }
+    g.connectorHandle circle {
+      fill: #fff;
+      stroke: #44a;
+      stroke-width: 1.5;
+      pointer-events: all;
+      cursor: crosshair;
+    }
+    g.connectorHandle path {
+      fill: none;
+      stroke: #44a;
+      pointer-events: none;
+    }
+    g.connectPreview path { pointer-events: none; }
+    g.connectPreview path.pending { stroke: #44a; stroke-dasharray: 4 3; }
+    g.connectPreview path.invalid { stroke: #c00; stroke-dasharray: 4 3; }
+    svg.connecting { cursor: crosshair; }
+    svg.connecting g.connectorHandle { pointer-events: none; }
+    g.element.connectTarget { filter: drop-shadow(0px 0px 4px #4a4); }
+    g.element.connectInvalid { filter: drop-shadow(0px 0px 4px #c44); cursor: not-allowed; }
+
     g.editInfo>rect {
       fill: #fffa;
       rx: 5px;

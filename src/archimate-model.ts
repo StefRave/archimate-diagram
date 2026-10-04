@@ -259,6 +259,8 @@ export class ArchimateProject {
 
   addEntity(entity: ArchiEntity) {
     this.entitiesById.set(entity.id, entity);
+    if (entity instanceof Relationship)
+      this.relationshipsById.set(entity.id, entity);
   }
 }
 
@@ -340,6 +342,16 @@ export class ArchiDiagram extends ArchiEntity {
     else
       this.children = this.children.filter(e => e.id != element.id);
     element.parent = null;
+  }
+
+  addSourceConnection(connection: ArchiSourceConnection) {
+    connection.source.sourceConnections = [...connection.source.sourceConnections, connection];
+    this.childById.set(connection.id, connection);
+  }
+
+  removeSourceConnection(connection: ArchiSourceConnection) {
+    connection.source.sourceConnections = connection.source.sourceConnections.filter(c => c.id !== connection.id);
+    this.childById.delete(connection.id);
   }
 }
 

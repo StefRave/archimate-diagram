@@ -1,6 +1,8 @@
-import { ArchiDiagram, ArchiDiagramChild, ArchiEntity, ArchimateProject, ArchiSourceConnection, ElementBounds, ElementPos } from './archimate-model';
+import { ArchiDiagram, ArchiDiagramChild, ArchiEntity, ArchimateProject, ArchiSourceConnection, ElementBounds, ElementPos, Relationship } from './archimate-model';
 import { DiagramRenderer } from './diagram-renderer';
 import { ChangeAction, ChangeFunctions, IDiagramChange, IXy } from './diagram-change';
+import { v4 as uuidv4 } from 'uuid';
+import { allowedRelationshipTypes, isConnectableConcept, relationshipTypeInfo } from './relationship-rules';
 
 const XSI_TYPE = 'xsi:type';
 
@@ -60,6 +62,12 @@ function folderForType(project: ArchimateProject, type: string): Element {
     if (element.getAttribute(XSI_TYPE) === type && element.parentElement)
       return element.parentElement;
   }
+  if (type.endsWith('Relationship')) {
+    const relationsFolder = Array.from(project.element.children)
+      .find(child => child.localName === 'folder' && child.getAttribute('type') === 'relations');
+    if (relationsFolder)
+      return relationsFolder;
+  }
   return project.element.getElementsByTagName('folder')[0];
 }
 
@@ -90,6 +98,54 @@ function ensureDiagramObjectElement(child: ArchiDiagramChild, diagram: ArchiDiag
   writeDiagramParent(child, diagram);
 }
 
+function ensureConnectionElement(connection: ArchiSourceConnection) {
+  if (!connection.element) {
+    const element = connection.source.element.ownerDocument.createElement('sourceConnection');
+    element.setAttribute(XSI_TYPE, 'archimate:Connection');
+    element.setAttribute('id', connection.id);
+    element.setAttribute('source', connection.source.id);
+    element.setAttribute('target', connection.targetId);
+    element.setAttribute('archimateRelationship', connection.relationShipId);
+    connection.element = element;
+  }
+  if (connection.element.parentElement !== connection.source.element) {
+    const firstChild = directChild(connection.source.element, 'child');
+    if (firstChild)
+      connection.source.element.insertBefore(connection.element, firstChild);
+    else
+      connection.source.element.appendChild(connection.element);
+  }
+}
+
+function addTargetConnection(target: ArchiDiagramChild, id: string) {
+  if (!target.element)
+    return;
+  const ids = (target.element.getAttribute('targetConnections') ?? '').split(/\s+/).filter(Boolean);
+  if (!ids.includes(id))
+    ids.push(id);
+  target.element.setAttribute('targetConnections', ids.join(' '));
+}
+
+function removeTargetConnection(target: ArchiDiagramChild, id: string) {
+  if (!target.element)
+    return;
+  const ids = (target.element.getAttribute('targetConnections') ?? '').split(/\s+/).filter(value => value && value !== id);
+  if (ids.length)
+    target.element.setAttribute('targetConnections', ids.join(' '));
+  else
+    target.element.removeAttribute('targetConnections');
+}
+
+export interface ConnectionRequest {
+  sourceId: string;
+  targetId: string;
+  sourceName: string;
+  targetName: string;
+  relationshipTypes: string[];
+  clientX: number;
+  clientY: number;
+}
+
 export class DiagramEditor {
   private readonly contentElement: SVGGElement;
   private selectedElementId: string;
@@ -97,7 +153,11 @@ export class DiagramEditor {
   private startDragMousePosition: {x: number, y: number};
   private startDragMouseOffset: {x: number, y: number};
   private activeDragging: boolean;
+  private connectDrag: { sourceId: string };
+  private pendingConnection: { sourceId: string; targetId: string; coords: ElementPos[] };
+  private connectTargetId: string;
   private changeManager: ChangeManager;
+  public onConnectionRequest: (request: ConnectionRequest | null) => void;
   private keyDownFunction = (evt: KeyboardEvent) => this.onKeyDown(evt);
   private pointerMoveFunction = (evt: PointerEvent) => this.onPointerMove(evt);
   private pointerUpFunction = (evt: PointerEvent) => this.onPointerUp(evt);
@@ -121,12 +181,24 @@ export class DiagramEditor {
   }
 
   dispose() {
+    this.cancelConnection();
     this.svg.ownerDocument.removeEventListener('keydown', this.keyDownFunction);
     this.svg.ownerDocument.removeEventListener('pointermove', this.pointerMoveFunction);
     this.svg.ownerDocument.removeEventListener('pointerup', this.pointerUpFunction);
   }
 
   private onKeyDown(evt: KeyboardEvent) {
+    if (evt.key === 'Escape' && (this.connectDrag || this.pendingConnection)) {
+      evt.preventDefault();
+      this.cancelConnection();
+      return;
+    }
+    if (this.pendingConnection && evt.ctrlKey && (evt.key === 'z' || evt.key === 'y')) {
+      evt.preventDefault();
+      this.cancelConnection();
+      return;
+    }
+
     const target = evt.target as HTMLElement;
     const targetElement = target.closest('.element');
     if ((evt.key == 'Enter' && !targetElement.classList.contains('note')) || evt.key == 'Escape') {
@@ -178,7 +250,7 @@ export class DiagramEditor {
   }
 
   private onTouchStart(evt: TouchEvent) {
-    if (this.changeManager.activeAction || this.selectedElement) {
+    if (this.changeManager.activeAction || this.selectedElement || this.connectDrag) {
       evt.preventDefault();
       evt.stopImmediatePropagation();
     }
@@ -187,6 +259,18 @@ export class DiagramEditor {
   private onPointerDown(evt: PointerEvent) {
     if (this.changeManager.activeAction == ChangeAction.Edit)
       return;
+    if (this.pendingConnection) {
+      this.cancelConnection();
+      evt.preventDefault();
+      evt.stopImmediatePropagation();
+      return;
+    }
+    const eventTarget = evt.target as Element;
+    const connectorHandle = eventTarget.closest?.('g.connectorHandle');
+    if (!this.changeManager.activeAction && connectorHandle) {
+      this.connectStart(connectorHandle.getAttribute('data-element-id'), evt);
+      return;
+    }
     if (this.changeManager.activeAction) {
       this.changeManager.finalizeChange();
       return;
@@ -221,8 +305,16 @@ export class DiagramEditor {
   }
 
   private onPointerMove(evt: PointerEvent) {
-    if (!this.changeManager.isActive)
+    if (this.connectDrag) {
+      this.connectDragMove(evt);
       return;
+    }
+    if (!this.changeManager.isActive) {
+      if (!this.pendingConnection)
+        this.updateConnectorHandle(evt);
+      return;
+    }
+    this.renderer.hideConnectorHandle();
     if (this.changeManager.activeAction == ChangeAction.Edit)
       return;
 
@@ -250,6 +342,10 @@ export class DiagramEditor {
   }
 
   private onPointerUp(evt: PointerEvent) {
+    if (this.connectDrag) {
+      this.connectDragEnd(evt);
+      return;
+    }
     if (!this.changeManager.isActive)
       return;
     if (this.changeManager.activeAction == ChangeAction.Edit)
@@ -268,6 +364,190 @@ export class DiagramEditor {
       this.changeManager.finalizeChange();
     }
     this.activeDragging = false;
+    if (!this.pendingConnection)
+      this.updateConnectorHandle(evt);
+  }
+
+  private updateConnectorHandle(evt: PointerEvent) {
+    const target = evt.target as Element;
+    if (!target || typeof target.closest !== 'function')
+      return;
+    if (target.closest('g.connectorHandle'))
+      return;
+
+    const hoveredElement = target.closest('g.element');
+    const hoveredChild = hoveredElement && this.connectableChild(hoveredElement.id);
+    if (hoveredChild) {
+      this.renderer.showConnectorHandle(hoveredChild);
+      return;
+    }
+
+    const shownId = this.renderer.connectorHandleElementId;
+    if (shownId) {
+      const shownChild = this.connectableChild(shownId);
+      if (shownChild) {
+        const pos = this.getMousePosition(evt);
+        const bounds = shownChild.bounds;
+        const absolute = shownChild.AbsolutePosition;
+        if (pos.x >= absolute.x - 24 && pos.x <= absolute.x + bounds.width + 24
+          && pos.y >= absolute.y - 24 && pos.y <= absolute.y + bounds.height + 24)
+          return;
+      }
+    }
+
+    const selectedChild = this.selectedElementId && this.connectableChild(this.selectedElementId);
+    if (selectedChild)
+      this.renderer.showConnectorHandle(selectedChild);
+    else
+      this.renderer.hideConnectorHandle();
+  }
+
+  private connectableChild(id: string): ArchiDiagramChild {
+    const child = this.diagram.getDiagramObjectById(id) as ArchiDiagramChild;
+    const concept = child?.entityId && this.project.getById(child.entityId);
+    return concept && isConnectableConcept(concept.entityType) ? child : null;
+  }
+
+  private relationshipTypesBetween(sourceId: string, targetId: string): string[] {
+    if (!targetId || sourceId === targetId)
+      return [];
+    const source = this.connectableChild(sourceId);
+    const target = this.connectableChild(targetId);
+    if (!source || !target)
+      return [];
+    const sourceConcept = this.project.getById(source.entityId);
+    const targetConcept = this.project.getById(target.entityId);
+    return allowedRelationshipTypes(sourceConcept.entityType, targetConcept.entityType);
+  }
+
+  private setConnectTarget(id: string, valid: boolean) {
+    if (this.connectTargetId && this.connectTargetId !== id)
+      this.svg.getElementById(this.connectTargetId)?.classList.remove('connectTarget', 'connectInvalid');
+    this.connectTargetId = id;
+    if (!id)
+      return;
+    const target = this.svg.getElementById(id);
+    if (target) {
+      target.classList.toggle('connectTarget', valid);
+      target.classList.toggle('connectInvalid', !valid);
+    }
+  }
+
+  private clearConnectTarget() {
+    if (this.connectTargetId)
+      this.svg.getElementById(this.connectTargetId)?.classList.remove('connectTarget', 'connectInvalid');
+    this.connectTargetId = null;
+  }
+
+  private connectionCoordinates(sourceId: string, targetId: string, mousePosition?: {x: number, y: number}): ElementPos[] {
+    const source = this.connectableChild(sourceId);
+    if (!source)
+      return [];
+    const [start, startBounds] = this.renderer.getAbsolutePositionAndBounds(source);
+    let end: ElementPos;
+    let endBounds: ElementPos;
+    const target = targetId && this.connectableChild(targetId);
+    if (target) {
+      [end, endBounds] = this.renderer.getAbsolutePositionAndBounds(target);
+    } else {
+      end = mousePosition ? new ElementPos(mousePosition.x, mousePosition.y) : start.clone();
+      endBounds = ElementPos.Zero;
+    }
+    return DiagramRenderer.calculateConnectionCoords(
+      start,
+      startBounds,
+      end,
+      endBounds,
+      { bendPoints: [] } as ArchiSourceConnection,
+    );
+  }
+
+  private connectStart(sourceId: string, evt: PointerEvent) {
+    if (!this.connectableChild(sourceId))
+      return;
+    evt.preventDefault();
+    evt.stopImmediatePropagation();
+    this.connectDrag = { sourceId };
+    this.renderer.hideConnectorHandle();
+    this.svg.classList.add('connecting');
+    this.renderer.setConnectionPreview(
+      this.connectionCoordinates(sourceId, null, this.getMousePosition(evt)),
+      'Relationship pending',
+    );
+  }
+
+  private connectDragMove(evt: PointerEvent) {
+    const target = evt.target as Element;
+    const hoveredElement = target?.closest?.('g.element');
+    const hoveredConnection = target?.closest?.('g.con');
+    const targetId = hoveredElement?.id ?? null;
+    const allowedTypes = this.relationshipTypesBetween(this.connectDrag.sourceId, targetId);
+    this.setConnectTarget(targetId, allowedTypes.length > 0);
+    const coords = this.connectionCoordinates(
+      this.connectDrag.sourceId,
+      allowedTypes.length > 0 ? targetId : null,
+      allowedTypes.length > 0 ? undefined : this.getMousePosition(evt),
+    );
+    const invalidTarget = !!hoveredElement || !!hoveredConnection;
+    this.renderer.setConnectionPreview(coords, allowedTypes.length > 0 || !invalidTarget ? 'Relationship pending' : 'Relationship invalid');
+  }
+
+  private connectDragEnd(evt: PointerEvent) {
+    const target = evt.target as Element;
+    const targetId = target?.closest?.('g.element')?.id ?? null;
+    const relationshipTypes = this.relationshipTypesBetween(this.connectDrag.sourceId, targetId);
+    if (!relationshipTypes.length) {
+      this.cancelConnection();
+      return;
+    }
+
+    const sourceId = this.connectDrag.sourceId;
+    const coords = this.connectionCoordinates(sourceId, targetId);
+    this.connectDrag = null;
+    this.clearConnectTarget();
+    this.svg.classList.remove('connecting');
+    this.pendingConnection = { sourceId, targetId, coords };
+    const source = this.connectableChild(sourceId);
+    const targetChild = this.connectableChild(targetId);
+    const sourceConcept = this.project.getById(source.entityId);
+    const targetConcept = this.project.getById(targetChild.entityId);
+    const [clientX, clientY] = this.connectionMidpointClientPosition(coords);
+    this.onConnectionRequest?.({
+      sourceId,
+      targetId,
+      sourceName: sourceConcept.name,
+      targetName: targetConcept.name,
+      relationshipTypes,
+      clientX,
+      clientY,
+    });
+  }
+
+  private connectionMidpointClientPosition(coords: ElementPos[]): [number, number] {
+    const middle = Math.floor((coords.length - 1) / 2);
+    const point = coords.length % 2 === 1
+      ? coords[middle]
+      : coords[middle].add(coords[middle + 1]).multiply(0.5);
+    const ctm = this.svg.getScreenCTM();
+    return [point.x * ctm.a + ctm.e, point.y * ctm.d + ctm.f];
+  }
+
+  public cancelConnection(): void {
+    const hadRequest = !!this.pendingConnection;
+    this.connectDrag = null;
+    this.pendingConnection = null;
+    this.clearConnectTarget();
+    this.svg.classList.remove('connecting');
+    this.renderer.removeConnectionPreview();
+    if (hadRequest)
+      this.onConnectionRequest?.(null);
+  }
+
+  public previewConnectionType(type: string | null): void {
+    if (!this.pendingConnection)
+      return;
+    const cssClass = type ? relationshipTypeInfo(type).previewClass : 'Relationship pending';
+    this.renderer.setConnectionPreview(this.pendingConnection.coords, cssClass);
   }
 
   private doElementSelection(controlKeyDown: boolean) {
@@ -344,6 +624,45 @@ export class DiagramEditor {
     this.renderer.removeElementSelections();
     this.renderer.addElementSelection(this.selectedElementId);
     this.editMoveStart(chainedToParent);
+  }
+
+  public createConnection(
+    sourceId: string,
+    targetId: string,
+    relationshipType: string,
+    ids = { relationshipId: 'id-' + uuidv4(), connectionId: 'id-' + uuidv4() },
+  ): void {
+    const source = this.diagram.getDiagramObjectById(sourceId) as ArchiDiagramChild;
+    const target = this.diagram.getDiagramObjectById(targetId) as ArchiDiagramChild;
+    const sourceConcept = source && this.project.getById(source.entityId);
+    const targetConcept = target && this.project.getById(target.entityId);
+    if (!sourceConcept || !targetConcept || !isConnectableConcept(sourceConcept.entityType)
+      || !isConnectableConcept(targetConcept.entityType) || sourceId === targetId ||
+      !allowedRelationshipTypes(sourceConcept.entityType, targetConcept.entityType).includes(relationshipType))
+      throw new Error(`Invalid ${relationshipType} connection from ${sourceId} to ${targetId}`);
+    if (this.connectDrag || this.pendingConnection)
+      this.cancelConnection();
+
+    const relationship = new Relationship();
+    relationship.id = ids.relationshipId;
+    relationship.entityType = relationshipType;
+    relationship.source = sourceConcept.id;
+    relationship.target = targetConcept.id;
+
+    const connection = new ArchiSourceConnection();
+    connection.id = ids.connectionId;
+    connection.source = source;
+    connection.targetId = target.id;
+    connection.relationShipId = relationship.id;
+    connection.bendPoints = [];
+    connection.sourceConnections = [];
+
+    this.changeManager.finalizeChange({
+      action: ChangeAction.AddRemoveConnection,
+      diagramId: this.diagram.id,
+      chainedToParent: false,
+      addRemoveConnection: { relationship, connection, adding: true },
+    } as IDiagramChange);
   }
 
   private editMoveStart(chainedToParent = false) {
@@ -528,6 +847,8 @@ class EditActionBuilder {
         return new EditEditAction();
       case ChangeAction.AddRemoveElement:
         return new EditAddRemoveElement();
+      case ChangeAction.AddRemoveConnection:
+        return new EditAddRemoveConnection();
       default:
         throw new Error(`Unimplemented action for ${ChangeAction[action]}`);
     }
@@ -715,6 +1036,39 @@ class EditAddRemoveElement extends EditAction {
       const parentSvgElement = renderer.svg.getElementById(diagramElement.parent != null ? diagramElement.parent.id : renderer.diagram.id);
       renderer.addElement(diagramElement, parentSvgElement);
     }
+  }
+}
+
+class EditAddRemoveConnection extends EditAction {
+  public doDiagramChange(diagramChange: IDiagramChange, renderer: DiagramRenderer, project: ArchimateProject, changeState: ChangeState): void {
+    if (changeState != ChangeState.Final)
+      return;
+    const { relationship, connection, adding } = diagramChange.addRemoveConnection;
+    const target = renderer.diagram.getDiagramObjectById(connection.targetId) as ArchiDiagramChild;
+    if (adding) {
+      ensureConceptElement(relationship, project);
+      relationship.element.setAttribute('source', relationship.source);
+      relationship.element.setAttribute('target', relationship.target);
+      if (!project.getById(relationship.id))
+        project.addEntity(relationship);
+      renderer.diagram.addSourceConnection(connection);
+      ensureConnectionElement(connection);
+      addTargetConnection(target, connection.id);
+    }
+    else {
+      connection.element?.remove();
+      removeTargetConnection(target, connection.id);
+      renderer.diagram.removeSourceConnection(connection);
+      relationship.element?.remove();
+      project.removeEntity(relationship);
+    }
+  }
+
+  public doSvgChange(change: IDiagramChange, renderer: DiagramRenderer, changeState: ChangeState): void {
+    if (changeState != ChangeState.Final)
+      return;
+    renderer.clearRelations();
+    renderer.addRelations();
   }
 }
 

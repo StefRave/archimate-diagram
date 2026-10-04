@@ -16,6 +16,8 @@ export class DiagramRenderer {
   private _editInfo: EditInfoElement;
   private _highlightedElementId: string;
   private _selectedRelationId: string;
+  private connectorHandleId: string;
+  private connectionPreview: SVGGElement;
  
   constructor(public readonly project: ArchimateProject, public readonly diagram: ArchiDiagram, public readonly template: DiagramTemplate) {
     this.svgDocument = this.template.getEmptySvg();
@@ -494,6 +496,60 @@ export class DiagramRenderer {
   public removeEditInfo() {
     this._editInfo = null;
     this.groupEditInfo.replaceChildren();
+  }
+
+  public showConnectorHandle(child: ArchiDiagramChild) {
+    if (this.connectorHandleId === child.id) {
+      const handle = this.groupElementSelection.querySelector('g.connectorHandle');
+      if (handle) {
+        const pos = child.AbsolutePosition;
+        handle.setAttribute('transform', `translate(${pos.x + child.bounds.width + 10}, ${pos.y + child.bounds.height / 2})`);
+        return;
+      }
+    }
+    this.hideConnectorHandle();
+    const handle = this.createSvgGElement();
+    handle.classList.add('connectorHandle');
+    handle.setAttribute('data-element-id', child.id);
+    const pos = child.AbsolutePosition;
+    handle.setAttribute('transform', `translate(${pos.x + child.bounds.width + 10}, ${pos.y + child.bounds.height / 2})`);
+    const circle = this.svg.ownerDocument.createElementNS(this.svg.namespaceURI, 'circle');
+    circle.setAttribute('r', '6');
+    const icon = this.svg.ownerDocument.createElementNS(this.svg.namespaceURI, 'path');
+    icon.setAttribute('d', 'M -3 0 H 3 M 0 -3 L 3 0 L 0 3');
+    handle.append(circle, icon);
+    this.groupElementSelection.appendChild(handle);
+    this.connectorHandleId = child.id;
+  }
+
+  public hideConnectorHandle() {
+    this.groupElementSelection.querySelector('g.connectorHandle')?.remove();
+    this.connectorHandleId = null;
+  }
+
+  public get connectorHandleElementId(): string {
+    return this.connectorHandleId;
+  }
+
+  public setConnectionPreview(coords: ElementPos[], cssClass: string) {
+    if (!this.connectionPreview) {
+      this.connectionPreview = this.createSvgGElement();
+      this.connectionPreview.classList.add('connectPreview');
+      this.connectionPreview.setAttribute('pointer-events', 'none');
+      this.groupElementSelection.appendChild(this.connectionPreview);
+    }
+    let path = this.connectionPreview.querySelector('path') as SVGPathElement;
+    if (!path) {
+      path = this.svg.ownerDocument.createElementNS(this.svg.namespaceURI, 'path') as SVGPathElement;
+      this.connectionPreview.appendChild(path);
+    }
+    path.setAttribute('d', DiagramRenderer.coordsToPathD(coords));
+    path.setAttribute('class', cssClass);
+  }
+
+  public removeConnectionPreview() {
+    this.connectionPreview?.remove();
+    this.connectionPreview = null;
   }
 
   public getElementSelections(): ElementSelectionElement[] { return Array.from(this.elementSelections.values()); }
