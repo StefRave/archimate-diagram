@@ -1,4 +1,4 @@
-import { Component, VNode, h, ComponentChild, render } from 'preact';
+import { Component, ReactNode } from 'react';
 import Split from 'split-grid';
 import { ArchiEntityTree } from './ArchiEntityTree';
 import { ChangeAction, IDiagramChange } from './diagram-change';
@@ -19,6 +19,7 @@ export type ArchiEditorState = {
 }
 export class ArchiEditor extends Component<ArchiEditorProps, ArchiEditorState> {
 
+  state: ArchiEditorState = { project: undefined, diagram: undefined };
   private diagramEditor: DiagramEditor;
   private svgTarget: HTMLElement;
   private diagramTemplate = DiagramTemplate.getFromDrawing();
@@ -149,7 +150,7 @@ export class ArchiEditor extends Component<ArchiEditorProps, ArchiEditorState> {
   }
 
 
-  render(): ComponentChild {
+  render(): ReactNode {
     return <div><p>
       <button onClick={() => this.uploadFile()}>Open Achi File</button>
       &nbsp;
@@ -160,15 +161,15 @@ export class ArchiEditor extends Component<ArchiEditorProps, ArchiEditorState> {
       <button>&#8631;</button> */}
 
     </p>
-      <div class="grid">
-        <div id="leftThing" class="split split-horizontal">
+      <div className="grid">
+        <div id="leftThing" className="split split-horizontal">
           <ul id="diagramTree">
             <ArchiEntityTree project={this.state.project} active={this.state.diagram?.id} onDiagramSelected={(viewId) => this.changeView(viewId)} />
           </ul>
           <ElementPalette onDragging={(elementType, evt) => this.onDragging(elementType, evt)} />
         </div>
-        <div class="vertical-gutter"></div>
-        <div id="svgTarget" class="split split-horizontal">
+        <div className="vertical-gutter"></div>
+        <div id="svgTarget" className="split split-horizontal">
         </div>
       </div>
     </div>;

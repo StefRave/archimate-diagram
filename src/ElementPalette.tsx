@@ -1,4 +1,4 @@
-import { Component, VNode, h, ComponentChild, createRef, RefObject } from 'preact';
+import { Component, ReactNode, createRef, RefObject, PointerEvent as ReactPointerEvent, MouseEvent as ReactMouseEvent } from 'react';
 import { ArchimateElementInfo, DiagramTemplate, IArchimateElementInfo } from './diagram-template';
 import { ElementBounds } from './archimate-model';
 import styles from './component.module.css'
@@ -14,15 +14,9 @@ export type ElementPaletteState = {
 }
 export class ElementPalette extends Component<ElementPaletteProps, ElementPaletteState> {
   private pointerMoveFunction = (evt: PointerEvent) => this.onPointerMove(evt);
-  ref: RefObject<HTMLDivElement>;
+  ref: RefObject<HTMLDivElement> = createRef<HTMLDivElement>();
   active: boolean;
-
-  constructor(public props: ElementPaletteProps, public state: ElementPaletteState) {
-    super(props, state);
-    this.state.previewX = 10;
-    this.state.previewY = 250;
-    this.ref = createRef();
-  }
+  state: ElementPaletteState = { previewX: 10, previewY: 250, elementType: null };
 
   private template = DiagramTemplate.getFromDrawing();
 
@@ -43,12 +37,12 @@ export class ElementPalette extends Component<ElementPaletteProps, ElementPalett
     return <svg data-element-name={element.elementName} width="20" height="20" viewBox="-10 -10 20 20" ref={(dom) => { dom?.replaceChildren(); dom?.appendChild(icon);} } xmlns="http://www.w3.org/2000/svg">
     </svg>
   }
-  render(): ComponentChild {
+  render(): ReactNode {
     const elementInfo = ArchimateElementInfo.getElementInfo();
 
-    return <div class={styles.palette} ref={this.ref} onPointerDown={(evt) => this.onPointerDown(evt)} onPointerUp={(evt) => this.onPointerUp(evt)} >
+    return <div className={styles.palette} ref={this.ref} onPointerDown={(evt) => this.onPointerDown(evt)} onPointerUp={(evt) => this.onPointerUp(evt)} >
       {elementInfo.map(element => 
-        <span onMouseEnter={(e) => this.onMouseEnter(e)}>{this.renderIcon(element)}
+        <span key={element.elementName} onMouseEnter={(e) => this.onMouseEnter(e)}>{this.renderIcon(element)}
         </span>)}
         <div>
             <ElementPreview elementType={this.state.elementType} x={this.state.previewX} y={this.state.previewY} />
@@ -56,14 +50,14 @@ export class ElementPalette extends Component<ElementPaletteProps, ElementPalett
     </div>;
   }
 
-  onPointerDown(evt: h.JSX.TargetedPointerEvent<HTMLDivElement>): void {
+  onPointerDown(evt: ReactPointerEvent<HTMLDivElement>): void {
     if (evt.buttons == 1) {
       this.placeElement(evt);
       this.active = true;
     }
   }
 
-  onPointerUp(evt: h.JSX.TargetedPointerEvent<HTMLDivElement>): void {
+  onPointerUp(evt: ReactPointerEvent<HTMLDivElement>): void {
     this.setState({ elementType: null }); // close preview
     this.active = false;
   }
@@ -95,7 +89,7 @@ export class ElementPalette extends Component<ElementPaletteProps, ElementPalett
     }
   }
 
-  onMouseEnter(e: h.JSX.TargetedMouseEvent<HTMLSpanElement>): void {
+  onMouseEnter(e: ReactMouseEvent<HTMLSpanElement>): void {
     if (e.buttons == 1)
       return;
     const d = (e.target as Element).closest('.' + styles.palette);
@@ -121,11 +115,8 @@ export type ElementPreviewProps = {
 
 export class ElementPreview extends Component<ElementPreviewProps> {
   private template = DiagramTemplate.getFromDrawing();
-  constructor(public props: ElementPreviewProps) {
-    super(props);
-  }
 
-  render(): ComponentChild {
+  render(): ReactNode {
     if (!this.props.elementType)
       return <div></div>;
     const e = this.template.getElementByType(
@@ -134,9 +125,7 @@ export class ElementPreview extends Component<ElementPreviewProps> {
     const div = e.querySelector(':scope>foreignObject>div>div');
     div.textContent = this.props.elementType;
     
-    return <div class={'content ' + styles.palettePreview} style={`position: absolute;  
-      top: ${this.props.y - 26}px; left: ${this.props.x}px;
-      width: 122px; height: 52px; background-color: #ff00;`}>
+    return <div className={'content ' + styles.palettePreview} style={{ position: 'absolute', top: `${this.props.y - 26}px`, left: `${this.props.x}px`, width: '122px', height: '52px', backgroundColor: '#ff00' }}>
       <svg width="122" height="52" ref={(dom) => setElement(dom)}>
       </svg>
     </div>;

@@ -1,6 +1,6 @@
 /// <reference types="vite/client" />
 import './index.scss';
-import { render, h } from 'preact';
+import { createRoot } from 'react-dom/client';
 import { ArchiEditor } from './ArchiEditor';
 
-render(<ArchiEditor />, document.querySelector('#app'));
+createRoot(document.querySelector('#app')).render(<ArchiEditor />);

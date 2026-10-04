@@ -12,9 +12,7 @@ module.exports = {
       loader: filename.endsWith('.tsx') ? 'tsx' : 'ts',
       format: 'cjs',
       target: 'es2017',
-      jsx: 'transform',
-      jsxFactory: 'h',
-      jsxFragment: 'Fragment',
+      jsx: 'automatic',
       sourcefile: filename,
     });
     return { code: result.code };

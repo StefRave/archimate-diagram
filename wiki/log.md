@@ -19,3 +19,7 @@ Added Chromium tests for a group drop, a scaled drag, and typing. The Firefox ne
 ## 2026-09-26
 
 Edits write the XML element the object already holds. A group rename updates the label that is drawn. Both are locked by `src/diagram-editor.spec.ts`.
+
+## 2026-10-04
+
+Moved the UI shell from Preact to React 19. `componentWillMount` still loads the project. No behavior change; the jsdom and Chromium tests are unchanged.

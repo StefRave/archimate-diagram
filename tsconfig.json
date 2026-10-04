@@ -1,8 +1,6 @@
 {
   "compilerOptions": {
-    "jsx": "react",
-    "jsxFactory": "h",
-    "jsxFragmentFactory": "Fragment",
+    "jsx": "react-jsx",
     "outDir": "./dist/",
     "rootDir": "./src",
     "sourceMap": true,
@@ -14,7 +12,6 @@
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "lib": [ "es2021", "DOM" ],
-    "plugins": [{ "name": "typescript-plugin-css-modules" }],
     "strict": false,
     "skipLibCheck": true,
     "types": ["*"]

@@ -8,3 +8,8 @@ declare module "*.archimate" {
   const content: any;
   export default content;
 }
+
+declare module "*.module.css" {
+  const styles: { readonly [key: string]: string };
+  export default styles;
+}
